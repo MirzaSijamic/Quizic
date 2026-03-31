@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+backend/venv/
+
+# Environment secrets
+.env
+.env.*
+backend/.env
+frontend/.env
+frontend/.env.*
+
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+.vite/
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+*.swo
