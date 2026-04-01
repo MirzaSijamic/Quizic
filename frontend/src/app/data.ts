@@ -15,7 +15,7 @@ export type QuizData = {
   description: string;
   questions: QuizQuestion[];
   passingScore?: number;
-  courseid: number;
+  courseId: number;
   courseTitle: string;
 };
 
@@ -60,7 +60,7 @@ export const MOCK_COURSES: Course[] = [
     ]
   },
   {
-    id: "dm-101",
+    id: 2,
     title: "Digital Marketing 101 eMP Academy",
     level: "Beginner",
     status: "Finished",
@@ -82,12 +82,12 @@ export const MOCK_COURSES: Course[] = [
             id: 1,
             title: "eMP Departments Quiz",
             description: "Test your knowledge about different departments within eMP",
-            courseId: "dm-101",
+            courseId: 2,
             courseTitle: "Digital Marketing 101 eMP Academy",
             passingScore: 70,
             questions: [
               {
-                id: 6,
+                id: 1,
                 question: "Which department is responsible for managing client relationships and campaign setup?",
                 options: [
                   "Finance",
@@ -99,7 +99,7 @@ export const MOCK_COURSES: Course[] = [
                 explanation: "AdOps (Ad Operations) manages client relationships, campaign setup, and trafficking."
               },
               {
-                id: 7,
+                id: 2,
                 question: "What is the primary role of the Sales team?",
                 options: [
                   "Managing server infrastructure",
@@ -111,7 +111,7 @@ export const MOCK_COURSES: Course[] = [
                 explanation: "The Sales team focuses on business development and acquiring new clients."
               },
               {
-                id: 8,
+                id: 3,
                 question: "Which team handles technical integration and platform development?",
                 options: [
                   "Marketing",
@@ -123,7 +123,7 @@ export const MOCK_COURSES: Course[] = [
                 explanation: "The Engineering/Tech team is responsible for platform development and technical integrations."
               },
               {
-                id: 9,
+                id: 4,
                 question: "What does the Finance department primarily handle?",
                 options: [
                   "Campaign optimization",
@@ -135,7 +135,7 @@ export const MOCK_COURSES: Course[] = [
                 explanation: "Finance manages all monetary aspects including invoicing, billing, and financial reporting."
               },
               {
-                id: 10,
+                id: 5,
                 question: "Which department focuses on employee development and company culture?",
                 options: [
                   "Sales",
@@ -159,7 +159,7 @@ export const MOCK_COURSES: Course[] = [
     ]
   },
   {
-    id: "comp-lit",
+    id: 3,
     title: "Computer Literacy",
     level: "Beginner",
     status: "Finished",
@@ -185,7 +185,7 @@ export const MOCK_COURSES: Course[] = [
     ]
   },
   {
-    id: "excel-lit",
+    id: 4,
     title: "Excel Literacy",
     level: "Beginner",
     status: "Unfinished",
@@ -303,7 +303,7 @@ export const MOCK_COURSES: Course[] = [
             id: 2,
             title: "Ad Server Fundamentals Quiz",
             description: "Test your understanding of ad servers, SSP, and DSP technologies",
-            courseid: 7,
+            courseId: 7,
             courseTitle: "Ad Servers",
             passingScore: 75,
             questions: [

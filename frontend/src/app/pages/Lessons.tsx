@@ -3,9 +3,11 @@ import { useNavigate } from "react-router";
 import { motion } from "motion/react";
 import { PlayCircle, ArrowRight, Plus, Users, X } from "lucide-react";
 import { MOCK_COURSES, CourseLevel, Course } from "../data";
+import { isStoredUserAdmin } from "../utils/auth";
 
 export function Lessons() {
   const navigate = useNavigate();
+  const canAccessAdminView = isStoredUserAdmin();
   const [isAdminView, setIsAdminView] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newCourseTitle, setNewCourseTitle] = useState("");
@@ -54,12 +56,14 @@ export function Lessons() {
           >
             Student View
           </button>
-          <button
-            onClick={() => setIsAdminView(true)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${isAdminView ? 'bg-white dark:bg-neutral-900 text-[#e61972] shadow-sm' : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-white'}`}
-          >
-            <Users className="w-4 h-4" /> Admin View
-          </button>
+          {canAccessAdminView && (
+            <button
+              onClick={() => setIsAdminView(true)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${isAdminView ? 'bg-white dark:bg-neutral-900 text-[#e61972] shadow-sm' : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-white'}`}
+            >
+              <Users className="w-4 h-4" /> Admin View
+            </button>
+          )}
         </div>
       </div>
 
@@ -118,7 +122,7 @@ export function Lessons() {
                   </button>
                 ))}
 
-                {isAdminView && (
+                {isAdminView && canAccessAdminView && (
                   <button
                     onClick={() => {
                       setNewCourseLevel(level);

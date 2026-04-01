@@ -9,6 +9,14 @@ def get_all_profiles(conn):
 def get_profile_by_id(conn, profile_id: int):
     return profile_crud.get_by_id(conn, profile_id)
 
+
+def get_profile_by_email(conn, email: str):
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM profiles WHERE email = %s LIMIT 1;", (email,))
+    result = cur.fetchone()
+    cur.close()
+    return result
+
 def create_profile(conn, profile_data: dict):
     return profile_crud.create(conn, profile_data)
 

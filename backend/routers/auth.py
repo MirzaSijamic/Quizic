@@ -1,4 +1,3 @@
-import base64
 import json
 import os
 import secrets
@@ -6,25 +5,14 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 
-from fastapi import APIRouter, Cookie, HTTPException, Query
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse, RedirectResponse
 
+from auth_session import decode_session_user, encode_session_user
+from database import get_db_connection
+from services import profile_service
+
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
-
-
-def _encode_session(value: dict) -> str:
-    raw = json.dumps(value).encode("utf-8")
-    return base64.urlsafe_b64encode(raw).decode("utf-8")
-
-
-def _decode_session(value: str | None) -> dict | None:
-    if not value:
-        return None
-    try:
-        decoded = base64.urlsafe_b64decode(value.encode("utf-8")).decode("utf-8")
-        return json.loads(decoded)
-    except (ValueError, json.JSONDecodeError):
-        return None
 
 
 def _required_env(name: str) -> str:
@@ -126,6 +114,7 @@ def microsoft_callback(
     error: str | None = Query(default=None),
     oauth_state: str | None = Cookie(default=None),
     oauth_next: str | None = Cookie(default=None),
+    conn=Depends(get_db_connection),
 ):
     settings = _oauth_settings()
     fallback_frontend = f"{settings['frontend_base']}/oauth/callback"
@@ -154,16 +143,28 @@ def microsoft_callback(
         return RedirectResponse(url=f"{frontend_target}?status=error&reason=token_missing")
 
     profile = _get_json("https://graph.microsoft.com/v1.0/me", access_token)
-    user = {
+    email = (profile.get("mail") or profile.get("userPrincipalName") or "").strip()
+    if not email:
+        return RedirectResponse(url=f"{frontend_target}?status=error&reason=email_missing")
+
+    local_profile = profile_service.ensure_oauth_profile(
+        conn,
+        email=email,
+        display_name=profile.get("displayName") or "",
+    )
+
+    user_session = {
+        "profile_id": local_profile["id"],
+        "role": local_profile.get("role", "student"),
         "id": profile.get("id", ""),
-        "email": profile.get("mail") or profile.get("userPrincipalName") or "",
+        "email": email,
         "display_name": profile.get("displayName") or "",
     }
 
     response = RedirectResponse(url=f"{frontend_target}?status=success")
     response.set_cookie(
         "session_user",
-        _encode_session(user),
+        encode_session_user(user_session),
         httponly=True,
         secure=False,
         samesite="lax",
@@ -176,7 +177,7 @@ def microsoft_callback(
 
 @router.get("/me")
 def me(session_user: str | None = Cookie(default=None)):
-    user = _decode_session(session_user)
+    user = decode_session_user(session_user)
     if not user:
         return JSONResponse({"authenticated": False}, status_code=401)
     return {"authenticated": True, "user": user}

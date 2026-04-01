@@ -40,8 +40,7 @@ export function OAuthCallback() {
 
         const data = (await response.json()) as SessionResponse;
         if (data.authenticated) {
-          localStorage.setItem("auth_authenticated", "true");
-          localStorage.setItem("auth_user", JSON.stringify(data.user ?? null));
+          localStorage.setItem("auth_user", JSON.stringify(data ?? null));
           navigate("/home", { replace: true });
           return;
         }

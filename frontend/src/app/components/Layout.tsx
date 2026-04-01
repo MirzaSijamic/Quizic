@@ -11,15 +11,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import { isStoredUserAdmin } from "../utils/auth";
 
 export function Layout() {
   const { theme, setTheme } = useTheme();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
+  const canAccessAdminTools = isStoredUserAdmin();
 
   const handleLogout = () => {
     // Clear any user data if stored (e.g., localStorage)
-    // localStorage.removeItem('user');
+    localStorage.removeItem('auth_user');
     navigate('/');
   };
 
@@ -144,16 +146,20 @@ export function Layout() {
                   <User className="mr-2 h-4 w-4" />
                   <span>Profile</span>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel>Admin Tools</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => navigate('/admin/quizzes')}>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Manage Quizzes</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/admin/results')}>
-                  <BarChart3 className="mr-2 h-4 w-4" />
-                  <span>View Student Results</span>
-                </DropdownMenuItem>
+                {canAccessAdminTools && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>Admin Tools</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => navigate('/admin/quizzes')}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Manage Quizzes</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/admin/results')}>
+                      <BarChart3 className="mr-2 h-4 w-4" />
+                      <span>View Student Results</span>
+                    </DropdownMenuItem>
+                  </>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />

@@ -197,9 +197,9 @@ export function ExerciseQuiz({ exercise, onClose, onComplete }: ExerciseQuizProp
 
       const res = await fetch(`${apiBase}/api/results/submit`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          profile_id: 1,
           quiz_id: normalizedQuizId,
           answers: payloadAnswers,
         }),

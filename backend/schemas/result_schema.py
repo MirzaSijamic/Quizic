@@ -39,7 +39,6 @@ class ResultRead(ResultBase):
 
 
 class ResultSubmitRequest(BaseModel):
-    profile_id: int
     quiz_id: int
     answers: list[SubmittedAnswer]
 

@@ -5,14 +5,18 @@ import { ArrowLeft, Play, FileText, PenTool, ShieldAlert, ChevronRight, Plus, X,
 import { MOCK_COURSES } from "../data";
 import { ExerciseQuiz, type QuizExercise } from "../components/ExerciseQuiz";
 import { getQuizExercisesByCourse, type QuizExerciseData } from "../utils/storage";
+import { isStoredUserAdmin } from "../utils/auth";
 
 export function CourseDetail() {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const canAccessAdminView = isStoredUserAdmin();
 
   // Support inheriting Admin view state from previous page, but allow toggling here
-  const [isAdminView, setIsAdminView] = useState(location.state?.isAdminView || false);
+  const [isAdminView, setIsAdminView] = useState(
+    canAccessAdminView && Boolean(location.state?.isAdminView),
+  );
   const [, setForceRender] = useState(0);
 
   const [showLessonModal, setShowLessonModal] = useState(false);
@@ -75,6 +79,34 @@ export function CourseDetail() {
     return [];
   };
 
+  const normalizeTitle = (value: string): string =>
+    value.trim().toLowerCase().replace(/\s+/g, " ");
+
+  const resolveBackendQuizIdByTitle = async (title: string): Promise<number | null> => {
+    const apiBase = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+    const quizzesRes = await fetch(`${apiBase}/api/quizzes/`);
+
+    if (!quizzesRes.ok) {
+      return null;
+    }
+
+    const quizzes = await quizzesRes.json();
+    if (!Array.isArray(quizzes)) {
+      return null;
+    }
+
+    const normalizedTarget = normalizeTitle(title);
+    const matchedQuiz = quizzes.find((quiz: any) => {
+      if (!quiz || typeof quiz !== "object") {
+        return false;
+      }
+
+      return typeof quiz.title === "string" && normalizeTitle(quiz.title) === normalizedTarget;
+    });
+
+    return matchedQuiz && Number.isInteger(matchedQuiz.id) ? matchedQuiz.id : null;
+  };
+
   const loadQuizFromBackend = async (
     quizId: number,
     fallbackMeta: Pick<QuizExercise, "title" | "description">,
@@ -125,10 +157,25 @@ export function CourseDetail() {
     setIsLoadingQuiz(true);
 
     try {
-      await loadQuizFromBackend(rawQuizId, {
-        title: fallbackQuiz.title,
-        description: fallbackQuiz.description,
-      });
+      let resolvedQuizId = rawQuizId;
+
+      try {
+        await loadQuizFromBackend(resolvedQuizId, {
+          title: fallbackQuiz.title,
+          description: fallbackQuiz.description,
+        });
+      } catch (primaryError) {
+        const fallbackResolvedQuizId = await resolveBackendQuizIdByTitle(fallbackQuiz.title);
+        if (fallbackResolvedQuizId === null || fallbackResolvedQuizId === resolvedQuizId) {
+          throw primaryError;
+        }
+
+        resolvedQuizId = fallbackResolvedQuizId;
+        await loadQuizFromBackend(resolvedQuizId, {
+          title: fallbackQuiz.title,
+          description: fallbackQuiz.description,
+        });
+      }
     } catch (error) {
       setQuizLoadError(error instanceof Error ? error.message : "Failed to load quiz from backend.");
       setActiveQuiz({
@@ -209,12 +256,14 @@ export function CourseDetail() {
           >
             Student View
           </button>
-          <button
-            onClick={() => setIsAdminView(true)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${isAdminView ? 'bg-white dark:bg-neutral-900 text-[#e61972] shadow-sm' : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-white'}`}
-          >
-            <Users className="w-4 h-4" /> Admin
-          </button>
+          {canAccessAdminView && (
+            <button
+              onClick={() => setIsAdminView(true)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${isAdminView ? 'bg-white dark:bg-neutral-900 text-[#e61972] shadow-sm' : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-white'}`}
+            >
+              <Users className="w-4 h-4" /> Admin
+            </button>
+          )}
         </div>
       </div>
 

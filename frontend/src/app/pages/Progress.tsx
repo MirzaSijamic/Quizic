@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import { Award, Calendar, CheckCircle2, CircleDashed, ArrowLeft, Users } from "lucide-react";
 import { USER_INFO, MOCK_COURSES, MOCK_STUDENTS } from "../data";
+import { isStoredUserAdmin } from "../utils/auth";
 
 type StudentWithFinishedCourseIds = {
   finishedCourseIds: number[];
@@ -17,6 +18,7 @@ function hasFinishedCourseIds(student: unknown): student is StudentWithFinishedC
 }
 
 export function Progress() {
+  const canAccessAdminView = isStoredUserAdmin();
   const [isAdminView, setIsAdminView] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
 
@@ -65,16 +67,18 @@ export function Progress() {
           >
             My Progress
           </button>
-          <button
-            onClick={() => setIsAdminView(true)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${isAdminView ? 'bg-white dark:bg-neutral-900 text-[#e61972] shadow-sm' : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-white'}`}
-          >
-            <Users className="w-4 h-4" /> Admin View
-          </button>
+          {canAccessAdminView && (
+            <button
+              onClick={() => setIsAdminView(true)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${isAdminView ? 'bg-white dark:bg-neutral-900 text-[#e61972] shadow-sm' : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-white'}`}
+            >
+              <Users className="w-4 h-4" /> Admin View
+            </button>
+          )}
         </div>
       </div>
 
-      {isAdminView && !selectedStudentId ? (
+      {isAdminView && canAccessAdminView && !selectedStudentId ? (
         // Admin View: List of Students
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {MOCK_STUDENTS.map((student) => {
