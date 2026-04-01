@@ -1,7 +1,7 @@
 // Local storage utility for quiz results and user progress
 
 export type QuizQuestion = {
-  id: string;
+  id: number;
   question: string;
   imageUrl?: string;
   options: string[];
@@ -10,10 +10,10 @@ export type QuizQuestion = {
 };
 
 export type QuizExerciseData = {
-  id: string;
+  id: number;
   title: string;
   description: string;
-  courseId: string;
+  courseId: number;
   courseTitle: string;
   lessonTitle: string;
   passingScore: number;
@@ -24,9 +24,9 @@ export type QuizExerciseData = {
 };
 
 export type QuizResult = {
-  exerciseId: string;
+  exerciseId: number;
   exerciseTitle: string;
-  courseId: string;
+  courseId: number;
   courseTitle: string;
   score: number;
   passed: boolean;
@@ -37,7 +37,7 @@ export type QuizResult = {
   userId?: string;
   userName?: string;
   answers: Array<{
-    questionId: string;
+    questionId: number;
     selectedAnswer: string;
     correctAnswer: string;
     isCorrect: boolean;
@@ -45,14 +45,14 @@ export type QuizResult = {
 };
 
 export type LessonCompletion = {
-  lessonId: string;
+  lessonId: number;
   lessonTitle: string;
-  courseId: string;
+  courseId: number;
   completedAt: string;
 };
 
 export type CourseProgress = {
-  courseId: string;
+  courseId: number;
   enrolledAt: string;
   completedAt?: string;
   status: 'active' | 'completed';
@@ -85,7 +85,7 @@ export function createQuizExercise(quiz: Omit<QuizExerciseData, 'createdAt' | 'u
   return newQuiz;
 }
 
-export function updateQuizExercise(quizId: string, updates: Partial<QuizExerciseData>): QuizExerciseData | null {
+export function updateQuizExercise(quizId: number, updates: Partial<QuizExerciseData>): QuizExerciseData | null {
   const quizzes = getAllQuizExercises();
   const index = quizzes.findIndex(q => q.id === quizId);
   
@@ -104,7 +104,7 @@ export function updateQuizExercise(quizId: string, updates: Partial<QuizExercise
   return quizzes[index];
 }
 
-export function deleteQuizExercise(quizId: string): boolean {
+export function deleteQuizExercise(quizId: number): boolean {
   const quizzes = getAllQuizExercises();
   const filteredQuizzes = quizzes.filter(q => q.id !== quizId);
   
@@ -120,11 +120,11 @@ export function getAllQuizExercises(): QuizExerciseData[] {
   return stored ? JSON.parse(stored) : [];
 }
 
-export function getQuizExerciseById(quizId: string): QuizExerciseData | null {
+export function getQuizExerciseById(quizId: number): QuizExerciseData | null {
   return getAllQuizExercises().find(q => q.id === quizId) || null;
 }
 
-export function getQuizExercisesByCourse(courseId: string): QuizExerciseData[] {
+export function getQuizExercisesByCourse(courseId: number): QuizExerciseData[] {
   return getAllQuizExercises().filter(q => q.courseId === courseId);
 }
 
@@ -143,11 +143,11 @@ export function getQuizResults(): QuizResult[] {
   return stored ? JSON.parse(stored) : [];
 }
 
-export function getQuizResultsByExercise(exerciseId: string): QuizResult[] {
+export function getQuizResultsByExercise(exerciseId: number): QuizResult[] {
   return getQuizResults().filter(r => r.exerciseId === exerciseId);
 }
 
-export function getBestQuizScore(exerciseId: string): QuizResult | null {
+export function getBestQuizScore(exerciseId: number): QuizResult | null {
   const results = getQuizResultsByExercise(exerciseId);
   if (results.length === 0) return null;
   return results.reduce((best, current) => 
@@ -155,7 +155,7 @@ export function getBestQuizScore(exerciseId: string): QuizResult | null {
   );
 }
 
-export function getQuizAttemptCount(exerciseId: string): number {
+export function getQuizAttemptCount(exerciseId: number): number {
   return getQuizResultsByExercise(exerciseId).length;
 }
 
@@ -182,11 +182,11 @@ export function getLessonCompletions(): LessonCompletion[] {
   return stored ? JSON.parse(stored) : [];
 }
 
-export function isLessonCompleted(lessonId: string): boolean {
+export function isLessonCompleted(lessonId: number): boolean {
   return getLessonCompletions().some(c => c.lessonId === lessonId);
 }
 
-export function getCompletedLessonsByCourse(courseId: string): LessonCompletion[] {
+export function getCompletedLessonsByCourse(courseId: number): LessonCompletion[] {
   return getLessonCompletions().filter(c => c.courseId === courseId);
 }
 
@@ -194,7 +194,7 @@ export function getCompletedLessonsByCourse(courseId: string): LessonCompletion[
 // COURSE PROGRESS
 // ============================================
 
-export function enrollInCourse(courseId: string): void {
+export function enrollInCourse(courseId: number): void {
   const progress = getCourseProgress();
   
   // Check if already enrolled
@@ -210,7 +210,7 @@ export function enrollInCourse(courseId: string): void {
   localStorage.setItem(STORAGE_KEYS.COURSE_PROGRESS, JSON.stringify(progress));
 }
 
-export function markCourseComplete(courseId: string): void {
+export function markCourseComplete(courseId: number): void {
   const progress = getCourseProgress();
   const course = progress.find(p => p.courseId === courseId);
   
@@ -226,7 +226,7 @@ export function getCourseProgress(): CourseProgress[] {
   return stored ? JSON.parse(stored) : [];
 }
 
-export function getCourseProgressById(courseId: string): CourseProgress | null {
+export function getCourseProgressById(courseId: number): CourseProgress | null {
   return getCourseProgress().find(p => p.courseId === courseId) || null;
 }
 

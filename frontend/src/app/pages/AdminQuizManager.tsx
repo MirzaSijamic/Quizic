@@ -24,14 +24,14 @@ import { MOCK_COURSES } from "../data";
 export function AdminQuizManager() {
   const [quizzes, setQuizzes] = useState<QuizExerciseData[]>(getAllQuizExercises());
   const [isCreating, setIsCreating] = useState(false);
-  const [editingQuizId, setEditingQuizId] = useState<string | null>(null);
-  const [expandedQuizId, setExpandedQuizId] = useState<string | null>(null);
+  const [editingQuizId, setEditingQuizId] = useState<number | null>(null);
+  const [expandedQuizId, setExpandedQuizId] = useState<number | null>(null);
 
   const refreshQuizzes = () => {
     setQuizzes(getAllQuizExercises());
   };
 
-  const handleDeleteQuiz = (quizId: string) => {
+  const handleDeleteQuiz = (quizId: number) => {
     if (confirm("Are you sure you want to delete this quiz? This action cannot be undone.")) {
       deleteQuizExercise(quizId);
       refreshQuizzes();
@@ -248,20 +248,27 @@ type QuizEditorModalProps = {
 function QuizEditorModal({ quiz, onClose, onSave }: QuizEditorModalProps) {
   const isEditing = !!quiz;
   const [isSaving, setIsSaving] = useState(false);
+
+  const nextQuizId = getAllQuizExercises().reduce((maxId, currentQuiz) => Math.max(maxId, currentQuiz.id), 0) + 1;
   
   const [formData, setFormData] = useState<Omit<QuizExerciseData, 'createdAt' | 'updatedAt'>>({
-    id: quiz?.id || `quiz-${Date.now()}`,
+    id: quiz?.id || nextQuizId,
     title: quiz?.title || "",
     description: quiz?.description || "",
-    courseId: quiz?.courseId || "",
+    courseId: quiz?.courseId || 0,
     courseTitle: quiz?.courseTitle || "",
     lessonTitle: quiz?.lessonTitle || "",
     passingScore: quiz?.passingScore || 70,
     questions: quiz?.questions || [],
   });
 
+  const getNextQuestionId = () => {
+    const maxFormQuestionId = formData.questions.reduce((maxId, question) => Math.max(maxId, question.id), 0);
+    return maxFormQuestionId + 1;
+  };
+
   const [currentQuestion, setCurrentQuestion] = useState<Partial<QuizQuestion>>({
-    id: `q-${Date.now()}`,
+    id: getNextQuestionId(),
     question: "",
     options: ["", "", "", ""],
     correctAnswer: "",
@@ -284,7 +291,7 @@ function QuizEditorModal({ quiz, onClose, onSave }: QuizEditorModalProps) {
       questions: [
         ...formData.questions,
         {
-          id: currentQuestion.id || `q-${Date.now()}`,
+          id: currentQuestion.id || getNextQuestionId(),
           question: currentQuestion.question,
           options: currentQuestion.options || [],
           correctAnswer: currentQuestion.correctAnswer,
@@ -296,7 +303,7 @@ function QuizEditorModal({ quiz, onClose, onSave }: QuizEditorModalProps) {
 
     // Reset current question
     setCurrentQuestion({
-      id: `q-${Date.now() + 1}`,
+      id: getNextQuestionId() + 1,
       question: "",
       options: ["", "", "", ""],
       correctAnswer: "",
@@ -305,7 +312,7 @@ function QuizEditorModal({ quiz, onClose, onSave }: QuizEditorModalProps) {
     });
   };
 
-  const handleRemoveQuestion = (questionId: string) => {
+  const handleRemoveQuestion = (questionId: number) => {
     setFormData({
       ...formData,
       questions: formData.questions.filter(q => q.id !== questionId),
@@ -385,14 +392,14 @@ function QuizEditorModal({ quiz, onClose, onSave }: QuizEditorModalProps) {
           const createdQuestion: { id: number } = await createQuestionRes.json();
           createdQuestions.push({
             ...question,
-            id: String(createdQuestion.id),
+            id: createdQuestion.id,
           });
         }
 
         // Keep local storage in sync for existing UI lists, but with DB-generated IDs.
         createQuizExercise({
           ...formData,
-          id: String(createdQuiz.id),
+          id: createdQuiz.id,
           title: createdQuiz.title,
           passingScore: createdQuiz.passing_score,
           questions: createdQuestions,
@@ -470,10 +477,11 @@ function QuizEditorModal({ quiz, onClose, onSave }: QuizEditorModalProps) {
                 <select
                   value={formData.courseId}
                   onChange={(e) => {
-                    const course = MOCK_COURSES.find(c => c.id === e.target.value);
+                    const parsedCourseId = Number(e.target.value);
+                    const course = MOCK_COURSES.find(c => c.id === parsedCourseId);
                     setFormData({
                       ...formData,
-                      courseId: e.target.value,
+                      courseId: parsedCourseId,
                       courseTitle: course?.title || "",
                     });
                   }}

@@ -29,15 +29,34 @@ export function CourseDetail() {
   const [isLoadingQuiz, setIsLoadingQuiz] = useState(false);
   const [quizLoadError, setQuizLoadError] = useState<string | null>(null);
 
-  const course = MOCK_COURSES.find((c) => c.id === courseId);
+  const normalizedCourseIdParam = (courseId ?? "").trim();
+  const strictNumericCourseId = Number(normalizedCourseIdParam);
+  const extractedNumericCourseId = Number.parseInt(normalizedCourseIdParam.replace(/^[^0-9-]+/, ""), 10);
+
+  const resolvedCourseId = Number.isInteger(strictNumericCourseId)
+    ? strictNumericCourseId
+    : Number.isInteger(extractedNumericCourseId)
+    ? extractedNumericCourseId
+    : null;
+
+  const course = MOCK_COURSES.find((c) => {
+    if (resolvedCourseId !== null && c.id === resolvedCourseId) {
+      return true;
+    }
+
+    // Backward compatibility for stale links/state where IDs were previously string-like.
+    return String(c.id) === normalizedCourseIdParam;
+  });
 
   // Load quizzes from storage for this course
   useEffect(() => {
-    if (courseId) {
-      const quizzes = getQuizExercisesByCourse(courseId);
+    if (course) {
+      const quizzes = getQuizExercisesByCourse(course.id);
       setStorageQuizzes(quizzes);
+    } else {
+      setStorageQuizzes([]);
     }
-  }, [courseId]);
+  }, [course]);
 
   // Helper to find quiz by lesson title
   const getQuizForLesson = (lessonTitle: string) => {
@@ -57,14 +76,9 @@ export function CourseDetail() {
   };
 
   const loadQuizFromBackend = async (
-    rawQuizId: string,
+    quizId: number,
     fallbackMeta: Pick<QuizExercise, "title" | "description">,
   ) => {
-    const quizId = Number(rawQuizId);
-    if (!Number.isInteger(quizId)) {
-      throw new Error("Quiz ID is not numeric, cannot load this quiz from backend.");
-    }
-
     const apiBase = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
     const [quizRes, questionsRes] = await Promise.all([
@@ -86,11 +100,11 @@ export function CourseDetail() {
     const questions = await questionsRes.json();
 
     const mappedQuiz: QuizExercise = {
-      id: String(quiz.id),
+      id: quiz.id,
       title: quiz.title || fallbackMeta.title,
       description: fallbackMeta.description,
       questions: questions.map((q: any) => ({
-        id: String(q.id),
+        id: q.id,
         question: q.question_text,
         options: normalizeOptions(q.answers),
         correctAnswer: q.correct_answer,
@@ -104,7 +118,7 @@ export function CourseDetail() {
   };
 
   const openQuiz = async (
-    rawQuizId: string,
+    rawQuizId: number,
     fallbackQuiz: Pick<QuizExercise, "title" | "description" | "questions" | "passingScore" | "courseId" | "courseTitle" | "id">,
   ) => {
     setQuizLoadError(null);
@@ -357,7 +371,7 @@ export function CourseDetail() {
                               <button
                                 onClick={() => {
                                   const fallbackQuiz = link.quiz!;
-                                  openQuiz(fallbackQuiz.id || "", {
+                                  openQuiz(fallbackQuiz.id || 0, {
                                     ...fallbackQuiz,
                                   });
                                 }}

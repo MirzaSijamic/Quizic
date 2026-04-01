@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { X, ChevronRight, ChevronLeft, CheckCircle, XCircle, Trophy, RotateCcw } from "lucide-react";
 
 export type QuizQuestion = {
-  id: string;
+  id: number;
   question: string;
   imageUrl?: string;
   options: string[];
@@ -12,12 +12,12 @@ export type QuizQuestion = {
 };
 
 export type QuizExercise = {
-  id?: string; // Add exercise ID
+  id?: number;
   title: string;
   description: string;
   questions: QuizQuestion[];
   passingScore?: number; // percentage needed to pass (default 70)
-  courseId?: string; // Add course ID
+  courseId?: number;
   courseTitle?: string; // Add course title
 };
 
@@ -29,7 +29,7 @@ type ExerciseQuizProps = {
 
 export function ExerciseQuiz({ exercise, onClose, onComplete }: ExerciseQuizProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
   const [showResults, setShowResults] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -42,6 +42,84 @@ export function ExerciseQuiz({ exercise, onClose, onComplete }: ExerciseQuizProp
     passing_score: number;
   } | null>(null);
   const [direction, setDirection] = useState<"forward" | "backward">("forward");
+
+  const normalizeIntegerId = (value: unknown): number | null => {
+    if (typeof value === "number" && Number.isInteger(value)) {
+      return value;
+    }
+
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+
+      if (/^-?\d+$/.test(trimmed)) {
+        const parsed = Number(trimmed);
+        return Number.isInteger(parsed) ? parsed : null;
+      }
+
+      const match = trimmed.match(/-?\d+/);
+      if (match) {
+        const parsed = Number(match[0]);
+        return Number.isInteger(parsed) ? parsed : null;
+      }
+    }
+
+    return null;
+  };
+
+  const formatApiError = (errorData: unknown): string => {
+    if (!errorData || typeof errorData !== "object") {
+      return "Failed to submit quiz result";
+    }
+
+    const data = errorData as { detail?: unknown; error?: unknown; message?: unknown };
+
+    if (typeof data.detail === "string") {
+      return data.detail;
+    }
+
+    if (Array.isArray(data.detail)) {
+      const messages = data.detail
+        .map((entry) => {
+          if (!entry || typeof entry !== "object") {
+            return null;
+          }
+
+          const maybeValidation = entry as { loc?: unknown; msg?: unknown };
+          if (typeof maybeValidation.msg !== "string") {
+            return null;
+          }
+
+          if (Array.isArray(maybeValidation.loc)) {
+            const field = maybeValidation.loc
+              .filter((part): part is string | number => typeof part === "string" || typeof part === "number")
+              .join(".");
+            return field ? `${field}: ${maybeValidation.msg}` : maybeValidation.msg;
+          }
+
+          return maybeValidation.msg;
+        })
+        .filter((msg): msg is string => Boolean(msg));
+
+      if (messages.length > 0) {
+        return messages.join(" | ");
+      }
+    }
+
+    if (typeof data.error === "string") {
+      return data.error;
+    }
+
+    if (typeof data.message === "string") {
+      return data.message;
+    }
+
+    return "Failed to submit quiz result";
+  };
+
+  const isQuizNotFoundError = (message: string): boolean => {
+    const normalized = message.trim().toLowerCase();
+    return normalized.includes("quiz not found") || normalized.includes("quiz_id") && normalized.includes("not found");
+  };
 
   const currentQuestion = exercise.questions[currentQuestionIndex];
   const totalQuestions = exercise.questions.length;
@@ -56,12 +134,6 @@ export function ExerciseQuiz({ exercise, onClose, onComplete }: ExerciseQuizProp
       }
     });
     return Math.round((correct / totalQuestions) * 100);
-  };
-
-  const toNumericId = (value: string | undefined) => {
-    if (!value) return null;
-    const parsed = Number(value);
-    return Number.isInteger(parsed) ? parsed : null;
   };
 
   const handleNext = () => {
@@ -79,22 +151,40 @@ export function ExerciseQuiz({ exercise, onClose, onComplete }: ExerciseQuizProp
   };
 
   const handleSubmit = async () => {
-    const numericQuizId = toNumericId(exercise.id);
-    if (!numericQuizId) {
-      setSubmitError("Quiz ID must be numeric to submit to backend.");
+    const localScore = calculateScore();
+    const localPassed = localScore >= passingScore;
+    const normalizedQuizId = normalizeIntegerId(exercise.id);
+
+    if (!exercise.id) {
+      // Local/fallback quizzes can still be completed even when they do not map to backend IDs.
+      setSubmitError(null);
+      setBackendResult(null);
+      setShowResults(true);
+      onComplete?.(localScore, localPassed);
+      return;
+    }
+
+    if (normalizedQuizId === null) {
+      setSubmitError("Quiz ID must be a valid integer to submit to backend.");
       return;
     }
 
     const payloadAnswers: { question_id: number; selected_answer: string }[] = [];
     for (const question of exercise.questions) {
-      const numericQuestionId = toNumericId(question.id);
       const selected = selectedAnswers[question.id];
-      if (!numericQuestionId || !selected) {
-        setSubmitError("Question IDs must be numeric and all questions must be answered.");
+      if (!selected) {
+        setSubmitError("Please answer all questions before submitting.");
         return;
       }
+
+      const normalizedQuestionId = normalizeIntegerId(question.id);
+      if (normalizedQuestionId === null) {
+        setSubmitError(`Question ID \"${String(question.id)}\" is invalid and cannot be submitted.`);
+        return;
+      }
+
       payloadAnswers.push({
-        question_id: numericQuestionId,
+        question_id: normalizedQuestionId,
         selected_answer: selected,
       });
     }
@@ -110,14 +200,25 @@ export function ExerciseQuiz({ exercise, onClose, onComplete }: ExerciseQuizProp
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           profile_id: 1,
-          quiz_id: numericQuizId,
+          quiz_id: normalizedQuizId,
           answers: payloadAnswers,
         }),
       });
 
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.detail || "Failed to submit quiz result");
+        const errorData = await res.json().catch(() => null);
+        const message = formatApiError(errorData);
+
+        // Some quizzes are available only in frontend mock data and are not seeded in backend.
+        // In that case, complete locally instead of blocking the user.
+        if (isQuizNotFoundError(message)) {
+          setBackendResult(null);
+          setShowResults(true);
+          onComplete?.(localScore, localPassed);
+          return;
+        }
+
+        throw new Error(message);
       }
 
       const data = await res.json();

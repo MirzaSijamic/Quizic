@@ -1,7 +1,7 @@
 export type CourseLevel = 'Beginner' | 'Intermediate' | 'Advanced';
 
 export type QuizQuestion = {
-  id: string;
+  id: number;
   question: string;
   imageUrl?: string;
   options: string[];
@@ -10,12 +10,12 @@ export type QuizQuestion = {
 };
 
 export type QuizData = {
-  id: string;
+  id: number;
   title: string;
   description: string;
   questions: QuizQuestion[];
   passingScore?: number;
-  courseId: string;
+  courseid: number;
   courseTitle: string;
 };
 
@@ -27,7 +27,7 @@ export type Lesson = {
 };
 
 export type Course = {
-  id: string;
+  id: number;
   title: string;
   level: CourseLevel;
   status: 'Finished' | 'Unfinished';
@@ -37,7 +37,7 @@ export type Course = {
 export const MOCK_COURSES: Course[] = [
   // BEGINNER COURSES
   {
-    id: "welcome-emp",
+    id: 1,
     title: "Welcome to eMP",
     level: "Beginner",
     status: "Finished",
@@ -79,7 +79,7 @@ export const MOCK_COURSES: Course[] = [
           title: "eMP Departments Quiz", 
           url: "#",
           quiz: {
-            id: "quiz-dm101-departments",
+            id: 1,
             title: "eMP Departments Quiz",
             description: "Test your knowledge about different departments within eMP",
             courseId: "dm-101",
@@ -87,7 +87,7 @@ export const MOCK_COURSES: Course[] = [
             passingScore: 70,
             questions: [
               {
-                id: "q1",
+                id: 6,
                 question: "Which department is responsible for managing client relationships and campaign setup?",
                 options: [
                   "Finance",
@@ -99,7 +99,7 @@ export const MOCK_COURSES: Course[] = [
                 explanation: "AdOps (Ad Operations) manages client relationships, campaign setup, and trafficking."
               },
               {
-                id: "q2",
+                id: 7,
                 question: "What is the primary role of the Sales team?",
                 options: [
                   "Managing server infrastructure",
@@ -111,7 +111,7 @@ export const MOCK_COURSES: Course[] = [
                 explanation: "The Sales team focuses on business development and acquiring new clients."
               },
               {
-                id: "q3",
+                id: 8,
                 question: "Which team handles technical integration and platform development?",
                 options: [
                   "Marketing",
@@ -123,7 +123,7 @@ export const MOCK_COURSES: Course[] = [
                 explanation: "The Engineering/Tech team is responsible for platform development and technical integrations."
               },
               {
-                id: "q4",
+                id: 9,
                 question: "What does the Finance department primarily handle?",
                 options: [
                   "Campaign optimization",
@@ -135,7 +135,7 @@ export const MOCK_COURSES: Course[] = [
                 explanation: "Finance manages all monetary aspects including invoicing, billing, and financial reporting."
               },
               {
-                id: "q5",
+                id: 10,
                 question: "Which department focuses on employee development and company culture?",
                 options: [
                   "Sales",
@@ -217,7 +217,7 @@ export const MOCK_COURSES: Course[] = [
     ]
   },
   {
-    id: "dm-101-ben",
+    id: 5,
     title: "DM 101 (Ben Silverstein)",
     level: "Beginner",
     status: "Unfinished",
@@ -249,7 +249,7 @@ export const MOCK_COURSES: Course[] = [
     ]
   },
   {
-    id: "io-media-plans",
+    id: 6,
     title: "IO & Media Plans",
     level: "Beginner",
     status: "Unfinished",
@@ -275,7 +275,7 @@ export const MOCK_COURSES: Course[] = [
     ]
   },
   {
-    id: "ad-servers",
+    id: 7,
     title: "Ad Servers",
     level: "Beginner",
     status: "Unfinished",
@@ -300,15 +300,15 @@ export const MOCK_COURSES: Course[] = [
           title: "Ad Server Fundamentals Quiz", 
           url: "#",
           quiz: {
-            id: "quiz-adservers-fundamentals",
+            id: 2,
             title: "Ad Server Fundamentals Quiz",
             description: "Test your understanding of ad servers, SSP, and DSP technologies",
-            courseId: "ad-servers",
+            courseid: 7,
             courseTitle: "Ad Servers",
             passingScore: 75,
             questions: [
               {
-                id: "q1",
+                id: 6,
                 question: "What is the primary function of an Ad Server?",
                 options: [
                   "To design creative advertisements",
@@ -320,7 +320,7 @@ export const MOCK_COURSES: Course[] = [
                 explanation: "Ad servers are technology platforms that store advertising content and decide which ads to show to users based on targeting criteria."
               },
               {
-                id: "q2",
+                id: 7,
                 question: "What does SSP stand for?",
                 options: [
                   "Server Side Protocol",
@@ -332,7 +332,7 @@ export const MOCK_COURSES: Course[] = [
                 explanation: "SSP (Sell Side Platform) helps publishers sell their ad inventory to advertisers in an automated way."
               },
               {
-                id: "q3",
+                id: 8,
                 question: "What does DSP stand for?",
                 imageUrl: "https://images.unsplash.com/photo-1716281793715-a39466d85526?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkaWdpdGFsJTIwYWR2ZXJ0aXNpbmclMjB0ZWNobm9sb2d5JTIwbmV0d29ya3xlbnwxfHx8fDE3NzM5Mjg1NTF8MA&ixlib=rb-4.1.0&q=80&w=1080",
                 options: [
@@ -345,7 +345,7 @@ export const MOCK_COURSES: Course[] = [
                 explanation: "DSP (Demand Side Platform) allows advertisers to buy ad inventory across multiple platforms in an automated fashion."
               },
               {
-                id: "q4",
+                id: 9,
                 question: "Which platform would a publisher primarily use?",
                 options: [
                   "DSP",
@@ -357,7 +357,7 @@ export const MOCK_COURSES: Course[] = [
                 explanation: "Publishers use SSPs (Sell Side Platforms) to manage and sell their advertising inventory to the highest bidder."
               },
               {
-                id: "q5",
+                id: 10,
                 question: "What is the main difference between an Ad Server and a DSP?",
                 options: [
                   "Ad servers only work with video ads",
@@ -369,7 +369,7 @@ export const MOCK_COURSES: Course[] = [
                 explanation: "Ad servers focus on ad delivery and management, while DSPs are buying platforms that help advertisers purchase inventory programmatically."
               },
               {
-                id: "q6",
+                id: 11,
                 question: "Which of these is an example of an Ad Server?",
                 options: [
                   "Facebook",
@@ -387,7 +387,7 @@ export const MOCK_COURSES: Course[] = [
     ]
   },
   {
-    id: "reporting",
+    id: 8,
     title: "Reporting",
     level: "Beginner",
     status: "Unfinished",
@@ -401,7 +401,7 @@ export const MOCK_COURSES: Course[] = [
     ]
   },
   {
-    id: "gam-reporting",
+    id: 9,
     title: "GAM Reporting",
     level: "Beginner",
     status: "Unfinished",
@@ -428,7 +428,7 @@ export const MOCK_COURSES: Course[] = [
   },
   // INTERMEDIATE COURSES
   {
-    id: "gam-trafficking",
+    id: 10,
     title: "GAM Trafficking",
     level: "Intermediate",
     status: "Unfinished",
@@ -460,7 +460,7 @@ export const MOCK_COURSES: Course[] = [
     ]
   },
   {
-    id: "dm-201",
+    id: 11,
     title: "DM 201 (Ben Silverstein)",
     level: "Intermediate",
     status: "Unfinished",
@@ -498,7 +498,7 @@ export const MOCK_COURSES: Course[] = [
     ]
   },
   {
-    id: "insights-recommendation",
+    id: 12,
     title: "Insights & Recommendation",
     level: "Intermediate",
     status: "Unfinished",
@@ -518,7 +518,7 @@ export const MOCK_COURSES: Course[] = [
     ]
   },
   {
-    id: "dcm-reporting",
+    id: 13,
     title: "DCM Reporting",
     level: "Intermediate",
     status: "Unfinished",
@@ -544,7 +544,7 @@ export const MOCK_COURSES: Course[] = [
     ]
   },
   {
-    id: "discrepancy",
+    id: 14,
     title: "Discrepancy",
     level: "Intermediate",
     status: "Unfinished",
@@ -570,7 +570,7 @@ export const MOCK_COURSES: Course[] = [
     ]
   },
   {
-    id: "secondary-metrics-reporting",
+    id: 15,
     title: "Secondary metrics reporting",
     level: "Intermediate",
     status: "Unfinished",
@@ -590,7 +590,7 @@ export const MOCK_COURSES: Course[] = [
     ]
   },
   {
-    id: "celtra-reporting",
+    id: 16,
     title: "Celtra Reporting",
     level: "Intermediate",
     status: "Unfinished",
@@ -604,7 +604,7 @@ export const MOCK_COURSES: Course[] = [
     ]
   },
   {
-    id: "billing-invoicing",
+    id: 17,
     title: "Billing & Invoicing",
     level: "Intermediate",
     status: "Unfinished",
@@ -624,7 +624,7 @@ export const MOCK_COURSES: Course[] = [
     ]
   },
   {
-    id: "inventory-management",
+    id: 18,
     title: "Inventory Management",
     level: "Intermediate",
     status: "Unfinished",
@@ -656,7 +656,7 @@ export const MOCK_COURSES: Course[] = [
     ]
   },
   {
-    id: "test-pages-screenshots",
+    id: 19,
     title: "Test pages & Screenshots",
     level: "Intermediate",
     status: "Unfinished",
@@ -676,7 +676,7 @@ export const MOCK_COURSES: Course[] = [
     ]
   },
   {
-    id: "video-campaigns",
+    id: 20,
     title: "Video Campaigns",
     level: "Intermediate",
     status: "Unfinished",
@@ -708,7 +708,7 @@ export const MOCK_COURSES: Course[] = [
     ]
   },
   {
-    id: "soft-skills",
+    id: 21,
     title: "Soft Skills",
     level: "Intermediate",
     status: "Unfinished",
@@ -741,7 +741,7 @@ export const MOCK_COURSES: Course[] = [
   },
   // ADVANCED COURSES
   {
-    id: "adtech-and-more",
+    id: 22,
     title: "AdTech and more",
     level: "Advanced",
     status: "Unfinished",
@@ -781,36 +781,36 @@ export const MENTORS = [
 
 export const MOCK_STUDENTS = [
   {
-    id: "stu-1",
+    id: 1,
     name: "Mirza Sijamić",
     role: "User",
     startDate: "Oct 15, 2023",
     graduationDate: "Jun 30, 2024",
-    finishedCourseIds: ["welcome-emp", "dm-101", "comp-lit"],
+    finishedCourseIds: [1, 2, 3],
   },
   {
-    id: "stu-2",
+    id: 2,
     name: "Amina Delic",
     role: "User",
     startDate: "Jan 10, 2024",
     graduationDate: "Aug 15, 2024",
-    finishedCourseIds: ["welcome-emp"],
+    finishedCourseIds: [1],
   },
   {
-    id: "stu-3",
+    id: 3,
     name: "Haris Kadic",
     role: "User",
     startDate: "Nov 01, 2023",
     graduationDate: "Jul 20, 2024",
-    finishedCourseIds: ["welcome-emp", "dm-101", "comp-lit", "excel-lit", "dm-101-ben"],
+    finishedCourseIds: [1, 2, 3, 4, 5],
   },
   {
-    id: "stu-4",
+    id: 4,
     name: "Lejla Hodzic",
     role: "User",
     startDate: "Sep 05, 2023",
     graduationDate: "May 10, 2024",
-    finishedCourseIds: ["welcome-emp", "dm-101"],
+    finishedCourseIds: [1, 2],
   }
 ];
 

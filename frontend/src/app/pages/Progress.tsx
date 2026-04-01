@@ -4,7 +4,7 @@ import { Award, Calendar, CheckCircle2, CircleDashed, ArrowLeft, Users } from "l
 import { USER_INFO, MOCK_COURSES, MOCK_STUDENTS } from "../data";
 
 type StudentWithFinishedCourseIds = {
-  finishedCourseIds: string[];
+  finishedCourseIds: number[];
 };
 
 function hasFinishedCourseIds(student: unknown): student is StudentWithFinishedCourseIds {
@@ -18,7 +18,7 @@ function hasFinishedCourseIds(student: unknown): student is StudentWithFinishedC
 
 export function Progress() {
   const [isAdminView, setIsAdminView] = useState(false);
-  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
 
   // If in admin view and a student is selected, use that student's data. Otherwise, use the global user data.
   const activeStudent = isAdminView && selectedStudentId

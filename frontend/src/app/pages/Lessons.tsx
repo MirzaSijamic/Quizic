@@ -18,8 +18,10 @@ export function Lessons() {
     e.preventDefault();
     if (!newCourseTitle.trim()) return;
 
+    const nextCourseId = MOCK_COURSES.reduce((maxId, course) => Math.max(maxId, course.id), 0) + 1;
+
     const newCourse: Course = {
-      id: newCourseTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+      id: nextCourseId,
       title: newCourseTitle,
       level: newCourseLevel,
       status: "Unfinished",

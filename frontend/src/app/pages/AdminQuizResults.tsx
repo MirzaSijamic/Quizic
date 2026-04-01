@@ -19,7 +19,7 @@ import {
 export function AdminQuizResults() {
   const [results] = useState<QuizResult[]>(getQuizResults());
   const [quizzes] = useState(getAllQuizExercises());
-  const [selectedQuizId, setSelectedQuizId] = useState<string>("all");
+  const [selectedQuizId, setSelectedQuizId] = useState<number | "all">("all");
   const [expandedResultId, setExpandedResultId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"date" | "score">("date");
 
@@ -83,8 +83,11 @@ export function AdminQuizResults() {
             <Filter className="w-5 h-5 text-neutral-400" />
             <div className="flex-1 flex items-center gap-4">
               <select
-                value={selectedQuizId}
-                onChange={(e) => setSelectedQuizId(e.target.value)}
+                value={selectedQuizId === "all" ? "all" : String(selectedQuizId)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSelectedQuizId(value === "all" ? "all" : Number(value));
+                }}
                 className="px-4 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100"
               >
                 <option value="all">All Quizzes</option>
