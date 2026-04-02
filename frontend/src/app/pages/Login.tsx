@@ -3,6 +3,8 @@ import loginImg from "../../assets/logo.png";
 import { ThemeProvider } from "../components/ThemeProvider";
 import { motion } from "motion/react";
 
+import { test } from "../utils/test";
+
 export function Login() {
   const [isRedirecting, setIsRedirecting] = useState(false);
   const apiBaseUrl =
@@ -55,6 +57,12 @@ export function Login() {
               </svg>
               {isRedirecting ? "Redirecting to Microsoft..." : "Sign in with Office365"}
             </button>
+
+            <button
+              onClick={test} // Replace with actual test function when needed
+              className="mt-4 w-full flex items-center justify-center gap-3 bg-gray-300 hover:bg-gray-400 text-gray-800 py-3 px-5 rounded-xl font-medium transition-all shadow-sm hover:shadow-md"
+            > test </button>
+
           </div>
         </motion.div>
         

@@ -14,7 +14,9 @@ import {
 import {
   deleteAdminQuizFromApi,
   fetchAdminQuizzesFromApi,
+  fetchLessonsFromApi,
   saveAdminQuizToApi,
+  type LessonOption,
   type QuizExerciseData,
   type QuizQuestion,
 } from "../utils/storage";
@@ -276,6 +278,9 @@ type QuizEditorModalProps = {
 function QuizEditorModal({ quiz, onClose, onSave }: QuizEditorModalProps) {
   const isEditing = !!quiz;
   const [isSaving, setIsSaving] = useState(false);
+  const [availableLessons, setAvailableLessons] = useState<LessonOption[]>([]);
+  const [isLoadingLessons, setIsLoadingLessons] = useState(true);
+  const [lessonsError, setLessonsError] = useState<string | null>(null);
   
   const [formData, setFormData] = useState<Omit<QuizExerciseData, 'createdAt' | 'updatedAt'>>({
     id: quiz?.id || Date.now(),
@@ -301,6 +306,23 @@ function QuizEditorModal({ quiz, onClose, onSave }: QuizEditorModalProps) {
     imageUrl: "",
     explanation: "",
   });
+
+  useEffect(() => {
+    const loadLessons = async () => {
+      try {
+        setLessonsError(null);
+        setAvailableLessons(await fetchLessonsFromApi());
+      } catch (error) {
+        setLessonsError(error instanceof Error ? error.message : "Failed to load lessons.");
+      } finally {
+        setIsLoadingLessons(false);
+      }
+    };
+
+    void loadLessons();
+  }, []);
+
+  const filteredLessons = availableLessons.filter((lesson) => lesson.course_id === formData.courseId);
 
   const handleAddQuestion = () => {
     if (!currentQuestion.question || currentQuestion.options?.some(o => !o.trim())) {
@@ -441,6 +463,7 @@ function QuizEditorModal({ quiz, onClose, onSave }: QuizEditorModalProps) {
                       ...formData,
                       courseId: parsedCourseId,
                       courseTitle: course?.title || "",
+                      lessonTitle: "",
                     });
                   }}
                   className="w-full px-4 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100"
@@ -456,13 +479,28 @@ function QuizEditorModal({ quiz, onClose, onSave }: QuizEditorModalProps) {
                 <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
                   Lesson Title *
                 </label>
-                <input
-                  type="text"
+                <select
                   value={formData.lessonTitle}
                   onChange={(e) => setFormData({ ...formData, lessonTitle: e.target.value })}
+                  disabled={!formData.courseId || isLoadingLessons}
                   className="w-full px-4 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100"
-                  placeholder="e.g., Introduction to AdOps"
-                />
+                >
+                  <option value="">
+                    {!formData.courseId
+                      ? "Select a course first"
+                      : isLoadingLessons
+                      ? "Loading lessons..."
+                      : "Select a lesson"}
+                  </option>
+                  {filteredLessons.map((lesson) => (
+                    <option key={lesson.id} value={lesson.name}>
+                      {lesson.name}
+                    </option>
+                  ))}
+                </select>
+                {lessonsError && (
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-2">{lessonsError}</p>
+                )}
               </div>
             </div>
 

@@ -43,3 +43,7 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+.test.ts
+frontend/src/app/utils/test.ts
+frontend/src/app/utils/test.tsx

@@ -90,6 +90,12 @@ type BackendLesson = {
   course_id?: number;
 };
 
+export type LessonOption = {
+  id: number;
+  name: string;
+  course_id?: number;
+};
+
 type BackendCourse = {
   id: number;
   name: string;
@@ -229,6 +235,20 @@ export async function fetchAdminQuizzesFromApi(): Promise<QuizExerciseData[]> {
       } satisfies QuizExerciseData;
     }),
   );
+}
+
+export async function fetchLessonsFromApi(): Promise<LessonOption[]> {
+  const apiBase = getApiBase();
+  const lessonsRes = await fetch(`${apiBase}/api/lessons/`, {
+    credentials: "include",
+  });
+
+  if (!lessonsRes.ok) {
+    const err = await lessonsRes.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to load lessons.");
+  }
+
+  return (await lessonsRes.json()) as LessonOption[];
 }
 
 export async function deleteAdminQuizFromApi(quizId: number): Promise<void> {
