@@ -66,6 +66,47 @@ const STORAGE_KEYS = {
   QUIZ_EXERCISES: 'academy_quiz_exercises',
 } as const;
 
+const getApiBase = () =>
+  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ??
+  `${window.location.protocol}//${window.location.hostname}:8000`;
+
+type BackendQuiz = {
+  id: number;
+  lesson_id: number;
+  title: string;
+  passing_score: number;
+};
+
+type BackendQuestion = {
+  id: number;
+  question_text: string;
+  answers: unknown;
+  correct_answer: string;
+};
+
+type BackendLesson = {
+  id: number;
+  name: string;
+  course_id?: number;
+};
+
+type BackendCourse = {
+  id: number;
+  name: string;
+};
+
+const normalizeOptions = (answers: unknown): string[] => {
+  if (Array.isArray(answers)) {
+    return answers.map((value) => String(value));
+  }
+
+  if (answers && typeof answers === "object") {
+    return Object.values(answers as Record<string, unknown>).map((value) => String(value));
+  }
+
+  return [];
+};
+
 // ============================================
 // QUIZ EXERCISE MANAGEMENT (Admin)
 // ============================================
@@ -126,6 +167,219 @@ export function getQuizExerciseById(quizId: number): QuizExerciseData | null {
 
 export function getQuizExercisesByCourse(courseId: number): QuizExerciseData[] {
   return getAllQuizExercises().filter(q => q.courseId === courseId);
+}
+
+export async function fetchAdminQuizzesFromApi(): Promise<QuizExerciseData[]> {
+  const apiBase = getApiBase();
+
+  const [quizzesRes, lessonsRes, coursesRes] = await Promise.all([
+    fetch(`${apiBase}/api/quizzes/`, { credentials: "include" }),
+    fetch(`${apiBase}/api/lessons/`, { credentials: "include" }),
+    fetch(`${apiBase}/api/courses/`, { credentials: "include" }),
+  ]);
+
+  if (!quizzesRes.ok) {
+    const err = await quizzesRes.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to load quizzes.");
+  }
+
+  if (!lessonsRes.ok) {
+    const err = await lessonsRes.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to load lessons.");
+  }
+
+  if (!coursesRes.ok) {
+    const err = await coursesRes.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to load courses.");
+  }
+
+  const backendQuizzes = (await quizzesRes.json()) as BackendQuiz[];
+  const lessons = (await lessonsRes.json()) as BackendLesson[];
+  const courses = (await coursesRes.json()) as BackendCourse[];
+
+  return Promise.all(
+    backendQuizzes.map(async (quiz) => {
+      const lesson = lessons.find((entry) => entry.id === quiz.lesson_id);
+      const course = courses.find((entry) => entry.id === lesson?.course_id);
+
+      const questionsRes = await fetch(`${apiBase}/api/questions/quiz/${quiz.id}`, {
+        credentials: "include",
+      });
+
+      const backendQuestions: BackendQuestion[] = questionsRes.ok
+        ? ((await questionsRes.json()) as BackendQuestion[])
+        : [];
+
+      return {
+        id: quiz.id,
+        title: quiz.title,
+        description: `Quiz for ${lesson?.name || "selected lesson"}`,
+        courseId: lesson?.course_id ?? 0,
+        courseTitle: course?.name || "Unknown Course",
+        lessonTitle: lesson?.name || "Unknown Lesson",
+        passingScore: quiz.passing_score,
+        questions: backendQuestions.map((question) => ({
+          id: question.id,
+          question: question.question_text,
+          options: normalizeOptions(question.answers),
+          correctAnswer: question.correct_answer,
+        })),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } satisfies QuizExerciseData;
+    }),
+  );
+}
+
+export async function deleteAdminQuizFromApi(quizId: number): Promise<void> {
+  const apiBase = getApiBase();
+  const res = await fetch(`${apiBase}/api/quizzes/${quizId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to delete quiz.");
+  }
+}
+
+export async function saveAdminQuizToApi(
+  formData: Omit<QuizExerciseData, 'createdAt' | 'updatedAt'>,
+  options: { isEditing: boolean; originalQuestions: QuizQuestion[] },
+): Promise<void> {
+  const apiBase = getApiBase();
+
+  const lessonsRes = await fetch(`${apiBase}/api/lessons/`, {
+    credentials: "include",
+  });
+  if (!lessonsRes.ok) {
+    const err = await lessonsRes.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to load lessons from backend.");
+  }
+
+  const lessons = (await lessonsRes.json()) as Array<{ id: number; name: string; course_id?: number }>;
+  const matchedLesson = lessons.find(
+    (lesson) => lesson.name === formData.lessonTitle && lesson.course_id === formData.courseId,
+  ) || lessons.find((lesson) => lesson.name === formData.lessonTitle);
+
+  if (!matchedLesson) {
+    throw new Error("No backend lesson matches the provided Lesson Title. Create/select a backend lesson first.");
+  }
+
+  if (options.isEditing) {
+    const updateQuizRes = await fetch(`${apiBase}/api/quizzes/${formData.id}`, {
+      method: "PUT",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        lesson_id: matchedLesson.id,
+        title: formData.title,
+        passing_score: formData.passingScore,
+      }),
+    });
+
+    if (!updateQuizRes.ok) {
+      const err = await updateQuizRes.json().catch(() => ({}));
+      throw new Error(err.detail || "Failed to update quiz in backend.");
+    }
+
+    const originalQuestionIds = new Set(options.originalQuestions.map((question) => question.id));
+    const updatedQuestionIds = new Set(formData.questions.map((question) => question.id));
+
+    for (const question of formData.questions) {
+      if (originalQuestionIds.has(question.id)) {
+        const updateQuestionRes = await fetch(`${apiBase}/api/questions/${question.id}`, {
+          method: "PUT",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            quiz_id: formData.id,
+            question_text: question.question,
+            answers: question.options,
+            correct_answer: question.correctAnswer,
+          }),
+        });
+
+        if (!updateQuestionRes.ok) {
+          const err = await updateQuestionRes.json().catch(() => ({}));
+          throw new Error(err.detail || "Failed to update one of the questions.");
+        }
+      } else {
+        const createQuestionRes = await fetch(`${apiBase}/api/questions/`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            quiz_id: formData.id,
+            question_text: question.question,
+            answers: question.options,
+            correct_answer: question.correctAnswer,
+          }),
+        });
+
+        if (!createQuestionRes.ok) {
+          const err = await createQuestionRes.json().catch(() => ({}));
+          throw new Error(err.detail || "Failed to create one of the questions.");
+        }
+      }
+    }
+
+    for (const originalQuestionId of originalQuestionIds) {
+      if (updatedQuestionIds.has(originalQuestionId)) {
+        continue;
+      }
+
+      const deleteQuestionRes = await fetch(`${apiBase}/api/questions/${originalQuestionId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!deleteQuestionRes.ok) {
+        const err = await deleteQuestionRes.json().catch(() => ({}));
+        throw new Error(err.detail || "Failed to delete one of the removed questions.");
+      }
+    }
+
+    return;
+  }
+
+  const createQuizRes = await fetch(`${apiBase}/api/quizzes/`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      lesson_id: matchedLesson.id,
+      title: formData.title,
+      passing_score: formData.passingScore,
+    }),
+  });
+
+  if (!createQuizRes.ok) {
+    const err = await createQuizRes.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to create quiz in backend.");
+  }
+
+  const createdQuiz: { id: number } = await createQuizRes.json();
+
+  for (const question of formData.questions) {
+    const createQuestionRes = await fetch(`${apiBase}/api/questions/`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        quiz_id: createdQuiz.id,
+        question_text: question.question,
+        answers: question.options,
+        correct_answer: question.correctAnswer,
+      }),
+    });
+
+    if (!createQuestionRes.ok) {
+      const err = await createQuestionRes.json().catch(() => ({}));
+      throw new Error(err.detail || "Failed to create one of the questions in backend.");
+    }
+  }
 }
 
 // ============================================

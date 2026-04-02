@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Plus, 
@@ -12,29 +12,45 @@ import {
   AlertCircle
 } from "lucide-react";
 import {
-  getAllQuizExercises,
-  createQuizExercise,
-  updateQuizExercise,
-  deleteQuizExercise,
+  deleteAdminQuizFromApi,
+  fetchAdminQuizzesFromApi,
+  saveAdminQuizToApi,
   type QuizExerciseData,
   type QuizQuestion,
 } from "../utils/storage";
 import { MOCK_COURSES } from "../data";
 
 export function AdminQuizManager() {
-  const [quizzes, setQuizzes] = useState<QuizExerciseData[]>(getAllQuizExercises());
+  const [quizzes, setQuizzes] = useState<QuizExerciseData[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [editingQuizId, setEditingQuizId] = useState<number | null>(null);
   const [expandedQuizId, setExpandedQuizId] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const refreshQuizzes = () => {
-    setQuizzes(getAllQuizExercises());
+  const refreshQuizzes = async () => {
+    try {
+      setLoadError(null);
+      setQuizzes(await fetchAdminQuizzesFromApi());
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Failed to load quizzes.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleDeleteQuiz = (quizId: number) => {
+  useEffect(() => {
+    void refreshQuizzes();
+  }, []);
+
+  const handleDeleteQuiz = async (quizId: number) => {
     if (confirm("Are you sure you want to delete this quiz? This action cannot be undone.")) {
-      deleteQuizExercise(quizId);
-      refreshQuizzes();
+      try {
+        await deleteAdminQuizFromApi(quizId);
+        await refreshQuizzes();
+      } catch (error) {
+        alert(error instanceof Error ? error.message : "Failed to delete quiz.");
+      }
     }
   };
 
@@ -62,6 +78,16 @@ export function AdminQuizManager() {
 
         {/* Quiz List */}
         <div className="space-y-4">
+          {isLoading ? (
+            <div className="bg-white dark:bg-neutral-900 rounded-2xl p-12 text-center border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400">
+              Loading quizzes...
+            </div>
+          ) : loadError ? (
+            <div className="bg-white dark:bg-neutral-900 rounded-2xl p-12 text-center border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400">
+              {loadError}
+            </div>
+          ) : (
+            <>
           {quizzes.length === 0 ? (
             <div className="bg-white dark:bg-neutral-900 rounded-2xl p-12 text-center border border-neutral-200 dark:border-neutral-800">
               <AlertCircle className="w-12 h-12 text-neutral-400 mx-auto mb-4" />
@@ -91,6 +117,8 @@ export function AdminQuizManager() {
               />
             ))
           )}
+            </>
+          )}
         </div>
 
         {/* Create/Edit Modal */}
@@ -103,7 +131,7 @@ export function AdminQuizManager() {
                 setEditingQuizId(null);
               }}
               onSave={() => {
-                refreshQuizzes();
+                void refreshQuizzes();
                 setIsCreating(false);
                 setEditingQuizId(null);
               }}
@@ -248,11 +276,9 @@ type QuizEditorModalProps = {
 function QuizEditorModal({ quiz, onClose, onSave }: QuizEditorModalProps) {
   const isEditing = !!quiz;
   const [isSaving, setIsSaving] = useState(false);
-
-  const nextQuizId = getAllQuizExercises().reduce((maxId, currentQuiz) => Math.max(maxId, currentQuiz.id), 0) + 1;
   
   const [formData, setFormData] = useState<Omit<QuizExerciseData, 'createdAt' | 'updatedAt'>>({
-    id: quiz?.id || nextQuizId,
+    id: quiz?.id || Date.now(),
     title: quiz?.title || "",
     description: quiz?.description || "",
     courseId: quiz?.courseId || 0,
@@ -332,79 +358,9 @@ function QuizEditorModal({ quiz, onClose, onSave }: QuizEditorModalProps) {
     const saveAsync = async () => {
       setIsSaving(true);
       try {
-        const apiBase =
-          import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ??
-          `${window.location.protocol}//${window.location.hostname}:8000`;
-
-        // Resolve lesson_id needed by backend quizzes table.
-        const lessonsRes = await fetch(`${apiBase}/api/lessons/`);
-        if (!lessonsRes.ok) {
-          const err = await lessonsRes.json().catch(() => ({}));
-          throw new Error(err.detail || "Failed to load lessons from backend.");
-        }
-
-        const lessons: Array<{ id: number; name: string; course_id?: number }> = await lessonsRes.json();
-        const matchedLesson = lessons.find((lesson) => lesson.name === formData.lessonTitle);
-        if (!matchedLesson) {
-          throw new Error("No backend lesson matches the provided Lesson Title. Create/select a backend lesson first.");
-        }
-
-        if (isEditing) {
-          // Keep existing behavior for edits in local storage.
-          updateQuizExercise(formData.id, formData);
-          onSave();
-          return;
-        }
-
-        const createQuizRes = await fetch(`${apiBase}/api/quizzes/`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            lesson_id: matchedLesson.id,
-            title: formData.title,
-            passing_score: formData.passingScore,
-          }),
-        });
-
-        if (!createQuizRes.ok) {
-          const err = await createQuizRes.json().catch(() => ({}));
-          throw new Error(err.detail || "Failed to create quiz in backend.");
-        }
-
-        const createdQuiz: { id: number; title: string; passing_score: number } = await createQuizRes.json();
-
-        const createdQuestions: QuizQuestion[] = [];
-        for (const question of formData.questions) {
-          const createQuestionRes = await fetch(`${apiBase}/api/questions/`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              quiz_id: createdQuiz.id,
-              question_text: question.question,
-              answers: question.options,
-              correct_answer: question.correctAnswer,
-            }),
-          });
-
-          if (!createQuestionRes.ok) {
-            const err = await createQuestionRes.json().catch(() => ({}));
-            throw new Error(err.detail || "Failed to create one of the questions in backend.");
-          }
-
-          const createdQuestion: { id: number } = await createQuestionRes.json();
-          createdQuestions.push({
-            ...question,
-            id: createdQuestion.id,
-          });
-        }
-
-        // Keep local storage in sync for existing UI lists, but with DB-generated IDs.
-        createQuizExercise({
-          ...formData,
-          id: createdQuiz.id,
-          title: createdQuiz.title,
-          passingScore: createdQuiz.passing_score,
-          questions: createdQuestions,
+        await saveAdminQuizToApi(formData, {
+          isEditing,
+          originalQuestions: quiz?.questions || [],
         });
 
         onSave();
