@@ -83,7 +83,9 @@ export function CourseDetail() {
     value.trim().toLowerCase().replace(/\s+/g, " ");
 
   const resolveBackendQuizIdByTitle = async (title: string): Promise<number | null> => {
-    const apiBase = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+    const apiBase =
+      import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ??
+      `${window.location.protocol}//${window.location.hostname}:8000`;
     const quizzesRes = await fetch(`${apiBase}/api/quizzes/`);
 
     if (!quizzesRes.ok) {
@@ -111,7 +113,9 @@ export function CourseDetail() {
     quizId: number,
     fallbackMeta: Pick<QuizExercise, "title" | "description">,
   ) => {
-    const apiBase = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+    const apiBase =
+      import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ??
+      `${window.location.protocol}//${window.location.hostname}:8000`;
 
     const [quizRes, questionsRes] = await Promise.all([
       fetch(`${apiBase}/api/quizzes/${quizId}`),

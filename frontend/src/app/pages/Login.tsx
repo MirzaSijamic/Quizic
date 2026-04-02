@@ -6,7 +6,8 @@ import { motion } from "motion/react";
 export function Login() {
   const [isRedirecting, setIsRedirecting] = useState(false);
   const apiBaseUrl =
-    import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ?? "http://localhost:8000";
+    import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ??
+    `${window.location.protocol}//${window.location.hostname}:8000`;
 
   const handleMicrosoftLogin = () => {
     setIsRedirecting(true);

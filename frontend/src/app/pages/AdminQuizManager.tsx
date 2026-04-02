@@ -332,7 +332,9 @@ function QuizEditorModal({ quiz, onClose, onSave }: QuizEditorModalProps) {
     const saveAsync = async () => {
       setIsSaving(true);
       try {
-        const apiBase = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+        const apiBase =
+          import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ??
+          `${window.location.protocol}//${window.location.hostname}:8000`;
 
         // Resolve lesson_id needed by backend quizzes table.
         const lessonsRes = await fetch(`${apiBase}/api/lessons/`);

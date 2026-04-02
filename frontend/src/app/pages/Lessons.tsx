@@ -5,6 +5,38 @@ import { PlayCircle, ArrowRight, Plus, Users, X } from "lucide-react";
 import { MOCK_COURSES, CourseLevel, Course } from "../data";
 import { isStoredUserAdmin } from "../utils/auth";
 
+async function createCourse(title: string, level: CourseLevel) {
+  console.log("Create clicked with:", { title, level });
+  const apiBase =
+    import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ??
+    `${window.location.protocol}//${window.location.hostname}:8000`;
+
+  try {
+    const response = await fetch(`${apiBase}/api/courses/`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: title,
+        difficulty: level,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Create failed (${response.status}): ${errorText}`);
+    }
+
+    const createdCourse = await response.json();
+    console.log("Created course:", createdCourse);
+  } catch (error) {
+    console.error("Create course error:", error);
+  }
+}
+
 export function Lessons() {
   const navigate = useNavigate();
   const canAccessAdminView = isStoredUserAdmin();
@@ -192,6 +224,7 @@ export function Lessons() {
                 </button>
                 <button
                   type="submit"
+                  onClick={() => createCourse(newCourseTitle, newCourseLevel)}
                   className="px-4 py-2 text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 rounded-xl transition-colors shadow-sm"
                 >
                   Create Course

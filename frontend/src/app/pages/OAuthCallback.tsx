@@ -18,7 +18,8 @@ export function OAuthCallback() {
   const reason = searchParams.get("reason");
 
   const apiBaseUrl =
-    import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ?? "http://localhost:8000";
+    import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ??
+    `${window.location.protocol}//${window.location.hostname}:8000`;
 
   useEffect(() => {
     if (status === "error") {
