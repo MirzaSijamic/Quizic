@@ -19,6 +19,25 @@ export function Layout() {
   const navigate = useNavigate();
   const canAccessAdminTools = isStoredUserAdmin();
 
+  const getStoredUserName = () => {
+    try {
+      const rawAuthUser = localStorage.getItem("auth_user");
+      if (!rawAuthUser) {
+        return "LocalStorage error";
+      }
+
+      const parsedAuthUser = JSON.parse(rawAuthUser);
+      return (
+        parsedAuthUser?.user?.display_name ||
+        "LocalStorage error"
+      );
+    } catch {
+      return "LocalStorage error";
+    }
+  };
+
+  const userName = getStoredUserName();
+
   const handleLogout = () => {
     // Clear any user data if stored (e.g., localStorage)
     localStorage.removeItem('auth_user');
@@ -36,6 +55,7 @@ export function Layout() {
     { to: "/admin/quizzes", icon: Settings, label: "Manage Quizzes" },
     { to: "/admin/results", icon: BarChart3, label: "View Results" },
   ];
+
 
   return (
     <div className="flex h-screen bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 font-sans transition-colors duration-200 overflow-hidden">
@@ -133,7 +153,7 @@ export function Layout() {
                 </div>
                 <div className="hidden sm:flex flex-col items-start leading-none">
                   <span className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-                    Mirza Sijamić
+                    {userName}
                   </span>
                   <span className="text-xs text-neutral-500 dark:text-neutral-400">User</span>
                 </div>
