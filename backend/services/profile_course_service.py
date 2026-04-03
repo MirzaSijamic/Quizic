@@ -8,6 +8,9 @@ def fetch_profile_courses(conn):
 def fetch_profile_course_by_id(conn, profile_course_id: int):
     return profile_course_crud.get_by_id(conn, profile_course_id)
 
+def fetch_profile_courses_by_profile_id(conn, profile_id):
+    return profile_course_crud.get_profile_courses_by_profile_id(conn, profile_id)
+
 
 def create_profile_course(conn, profile_course_data: dict):
     return profile_course_crud.create(conn, profile_course_data)

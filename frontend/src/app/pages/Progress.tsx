@@ -1,45 +1,192 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { Award, Calendar, CheckCircle2, CircleDashed, ArrowLeft, Users } from "lucide-react";
-import { USER_INFO, MOCK_COURSES, MOCK_STUDENTS } from "../data";
+import { USER_INFO, MOCK_COURSES } from "../data";
 import { isStoredUserAdmin } from "../utils/auth";
 
-type StudentWithFinishedCourseIds = {
-  finishedCourseIds: number[];
+type ProfileCourseRelation = {
+  id: number;
+  profile_id: number;
+  course_id: number;
+  completed: boolean | null;
 };
 
-function hasFinishedCourseIds(student: unknown): student is StudentWithFinishedCourseIds {
+type DbProfile = {
+  id: number;
+  full_name: string;
+  email: string;
+  role: string;
+};
+
+type ActiveStudentView = {
+  name: string;
+  role: string;
+  startDate: string;
+  graduationDate: string;
+};
+
+function getApiBase() {
   return (
-    typeof student === "object" &&
-    student !== null &&
-    "finishedCourseIds" in student &&
-    Array.isArray((student as { finishedCourseIds?: unknown }).finishedCourseIds)
+    import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ??
+    `${window.location.protocol}//${window.location.hostname}:8000`
   );
+}
+
+async function getProfilesFromDb() {
+  const response = await fetch(`${getApiBase()}/api/profiles/`, {
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch profiles (${response.status}): ${errorText}`);
+  }
+
+  return (await response.json()) as DbProfile[];
+}
+
+async function getAllProfileCourses() {
+  const response = await fetch(`${getApiBase()}/api/profile-courses/`, {
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch all profile courses (${response.status}): ${errorText}`);
+  }
+
+  return (await response.json()) as ProfileCourseRelation[];
+}
+
+async function getCourseInfoPerStudent(profileId: number) {
+  try {
+    const response = await fetch(`${getApiBase()}/api/profile-courses/profile/${profileId}`, {
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (response.status === 404) {
+      return [];
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to fetch profile courses (${response.status}): ${errorText}`);
+    }
+
+    return (await response.json()) as ProfileCourseRelation[];
+  } catch (error) {
+    console.error("Error fetching profile courses:", error);
+    return [];
+  }
 }
 
 export function Progress() {
   const canAccessAdminView = isStoredUserAdmin();
   const [isAdminView, setIsAdminView] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
+  const [profileCourses, setProfileCourses] = useState<ProfileCourseRelation[]>([]);
+  const [dbStudents, setDbStudents] = useState<DbProfile[]>([]);
+  const [coursesByProfileId, setCoursesByProfileId] = useState<Record<number, ProfileCourseRelation[]>>({});
 
-  // If in admin view and a student is selected, use that student's data. Otherwise, use the global user data.
-  const activeStudent = isAdminView && selectedStudentId
-    ? MOCK_STUDENTS.find(s => s.id === selectedStudentId)
+  const loggedUserId = localStorage.getItem("auth_user") ? JSON.parse(localStorage.getItem("auth_user")!) : null;
+  const rawProfileId = loggedUserId?.user?.profile_id ?? loggedUserId?.profile_id;
+  const loggedProfileId = Number(rawProfileId);
+  const selectedDbStudent = dbStudents.find((profile) => profile.id === selectedStudentId) ?? null;
+
+  useEffect(() => {
+    if (!isAdminView) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    Promise.all([getProfilesFromDb(), getAllProfileCourses()])
+      .then(([profiles, relations]) => {
+        if (isCancelled) {
+          return;
+        }
+
+        const studentsOnly = profiles.filter((profile) => profile.role.toLowerCase() !== "admin");
+        const grouped: Record<number, ProfileCourseRelation[]> = {};
+        relations.forEach((relation) => {
+          if (!grouped[relation.profile_id]) {
+            grouped[relation.profile_id] = [];
+          }
+          grouped[relation.profile_id].push(relation);
+        });
+
+        setDbStudents(studentsOnly);
+        setCoursesByProfileId(grouped);
+      })
+      .catch((error) => {
+        console.error("Failed to load students for admin view:", error);
+        if (!isCancelled) {
+          setDbStudents([]);
+          setCoursesByProfileId({});
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isAdminView]);
+
+  useEffect(() => {
+    const activeProfileId = isAdminView && selectedStudentId ? selectedStudentId : loggedProfileId;
+
+    if (!Number.isFinite(activeProfileId) || activeProfileId <= 0) {
+      console.warn("Profile id missing or invalid in auth_user:", loggedUserId);
+      setProfileCourses([]);
+      return;
+    }
+
+    getCourseInfoPerStudent(activeProfileId).then((courses) => {
+      setProfileCourses(Array.isArray(courses) ? courses : []);
+    });
+  }, [isAdminView, loggedProfileId, selectedStudentId]);
+
+  const finishedProfileCourseIds = profileCourses
+    .filter((relation) => relation.completed === true)
+    .map((relation) => relation.course_id);
+
+  const unfinishedProfileCourseIds = profileCourses
+    .filter((relation) => relation.completed !== true)
+    .map((relation) => relation.course_id);
+
+  const activeStudent: ActiveStudentView = isAdminView && selectedDbStudent
+    ? {
+        name: selectedDbStudent.full_name,
+        role: selectedDbStudent.role,
+        startDate: "-",
+        graduationDate: "-",
+      }
     : USER_INFO;
 
-  // Determine which courses are finished based on the active student or fallback to the mock data status
-  const finishedCourses = isAdminView && hasFinishedCourseIds(activeStudent)
-    ? MOCK_COURSES.filter(c => activeStudent.finishedCourseIds.includes(c.id))
-    : MOCK_COURSES.filter(c => c.status === "Finished");
+  const useBackendCounts = isAdminView && selectedStudentId ? true : profileCourses.length > 0;
 
-  const unfinishedCourses = isAdminView && hasFinishedCourseIds(activeStudent)
-    ? MOCK_COURSES.filter(c => !activeStudent.finishedCourseIds.includes(c.id))
-    : MOCK_COURSES.filter(c => c.status === "Unfinished");
+  const finishedCourses = useBackendCounts
+    ? MOCK_COURSES.filter((course) => finishedProfileCourseIds.includes(course.id))
+    : MOCK_COURSES.filter((course) => course.status === "Finished");
+
+  const unfinishedCourses = useBackendCounts
+    ? MOCK_COURSES.filter((course) => unfinishedProfileCourseIds.includes(course.id))
+    : MOCK_COURSES.filter((course) => course.status === "Unfinished");
 
   const progressBarKey = isAdminView ? selectedStudentId ?? "admin" : "user";
-  
-  const totalCourses = MOCK_COURSES.length;
-  const progressPercentage = Math.round((finishedCourses.length / totalCourses) * 100) || 0;
+
+  const finishedCount = useBackendCounts ? finishedProfileCourseIds.length : finishedCourses.length;
+  const unfinishedCount = useBackendCounts ? unfinishedProfileCourseIds.length : unfinishedCourses.length;
+  const totalCourses = useBackendCounts ? finishedCount + unfinishedCount : MOCK_COURSES.length;
+  const progressPercentage = totalCourses > 0 ? Math.round((finishedCount / totalCourses) * 100) : 0;
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-12">
@@ -81,9 +228,12 @@ export function Progress() {
       {isAdminView && canAccessAdminView && !selectedStudentId ? (
         // Admin View: List of Students
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {MOCK_STUDENTS.map((student) => {
-            const studentCompleted = student.finishedCourseIds.length;
-            const studentProgress = Math.round((studentCompleted / totalCourses) * 100) || 0;
+          {dbStudents.map((student) => {
+            const studentRelations = coursesByProfileId[student.id] ?? [];
+            const studentCompleted = studentRelations.filter((relation) => relation.completed === true).length;
+            const studentUnfinished = studentRelations.filter((relation) => relation.completed !== true).length;
+            const studentTotal = studentCompleted + studentUnfinished;
+            const studentProgress = studentTotal > 0 ? Math.round((studentCompleted / studentTotal) * 100) : 0;
             
             return (
               <motion.div
@@ -95,12 +245,12 @@ export function Progress() {
               >
                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 to-orange-400 p-0.5 mb-4 group-hover:scale-105 transition-transform">
                   <div className="w-full h-full rounded-full bg-white dark:bg-neutral-900 flex items-center justify-center text-xl font-bold text-pink-600 dark:text-pink-400">
-                    {student.name.charAt(0)}
+                    {student.full_name.charAt(0)}
                   </div>
                 </div>
                 
-                <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">{student.name}</h3>
-                <p className="text-xs text-neutral-500 mb-4">{studentCompleted} of {totalCourses} courses completed</p>
+                <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">{student.full_name}</h3>
+                <p className="text-xs text-neutral-500 mb-4">{studentCompleted} finished, {studentUnfinished} unfinished</p>
                 
                 <div className="w-full h-2 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
                   <div 
@@ -156,7 +306,7 @@ export function Progress() {
                   <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200">Overall Progress</h3>
                   <p className="text-sm text-neutral-500 mt-1">
                     {isAdminView ? `${activeStudent?.name.split(' ')[0]} has ` : "You have "} 
-                    completed {finishedCourses.length} out of {totalCourses} courses
+                    completed {finishedCount} out of {totalCourses} courses
                   </p>
                 </div>
                 <span className="text-4xl font-black bg-gradient-to-r from-pink-600 to-orange-500 bg-clip-text text-transparent">
@@ -176,6 +326,7 @@ export function Progress() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+
               {/* Finished Courses */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200 flex items-center gap-2">

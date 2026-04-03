@@ -18,6 +18,11 @@ def get_profile_course_by_id(profile_course_id: int, conn=Depends(get_db_connect
         raise HTTPException(status_code=404, detail="Profile-course relation not found")
     return profile_course
 
+@router.get("/profile/{profile_id}")
+def get_profile_course_by_profile_id(profile_id: int, conn=Depends(get_db_connection)) -> list[ProfileCourseRead]:
+    profile_courses = profile_course_service.fetch_profile_courses_by_profile_id(conn, profile_id)
+    return profile_courses
+
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def create_profile_course(profile_course_data: ProfileCourseCreate, conn=Depends(get_db_connection)) -> ProfileCourseRead:
