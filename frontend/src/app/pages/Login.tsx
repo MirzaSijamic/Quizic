@@ -3,7 +3,17 @@ import loginImg from "../../assets/logo.png";
 import { ThemeProvider } from "../components/ThemeProvider";
 import { motion } from "motion/react";
 
+<<<<<<< HEAD
 import { test } from "../utils/test";
+=======
+type CourseCompletionStatus = {
+  course_id: number;
+  total_quizzes: number;
+  passed_quizzes: number;
+  completed: boolean;
+};
+
+>>>>>>> 93a29b2 (Progress fixed)
 
 export function Login() {
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -18,6 +28,10 @@ export function Login() {
     window.location.href = authUrl;
   };
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 93a29b2 (Progress fixed)
   return (
     <ThemeProvider>
       <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 flex flex-col items-center justify-center p-4 selection:bg-pink-500/30">
@@ -58,11 +72,14 @@ export function Login() {
               {isRedirecting ? "Redirecting to Microsoft..." : "Sign in with Office365"}
             </button>
 
+<<<<<<< HEAD
             <button
               onClick={test} // Replace with actual test function when needed
               className="mt-4 w-full flex items-center justify-center gap-3 bg-gray-300 hover:bg-gray-400 text-gray-800 py-3 px-5 rounded-xl font-medium transition-all shadow-sm hover:shadow-md"
             > test </button>
 
+=======
+>>>>>>> 93a29b2 (Progress fixed)
           </div>
         </motion.div>
         

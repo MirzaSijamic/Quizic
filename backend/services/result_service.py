@@ -1,8 +1,16 @@
 from datetime import datetime
 
+<<<<<<< HEAD
 from crud.result_crud import get_next_attempt_num, result_crud
 from services.question_service import fetch_questions_by_quiz_id
 from services.quiz_service import fetch_quiz_by_id
+=======
+from services import profile_course_service
+from crud.result_crud import get_next_attempt_num, result_crud
+from services.question_service import fetch_questions_by_quiz_id
+from services.quiz_service import fetch_quiz_by_id
+from crud.profile_course_crud import profile_course_crud
+>>>>>>> 93a29b2 (Progress fixed)
 
 
 def fetch_results(conn):
@@ -81,6 +89,15 @@ def submit_quiz_result(conn, submit_data: dict):
         },
     )
 
+<<<<<<< HEAD
+=======
+    course_id = profile_course_crud.get_course_id_by_quiz_id(conn, quiz_id)
+    if course_id is not None:
+        profile_course_service.sync_profile_course_completion(conn, profile_id, course_id)
+
+
+
+>>>>>>> 93a29b2 (Progress fixed)
     return {
         "result_id": created_result["id"],
         "profile_id": profile_id,

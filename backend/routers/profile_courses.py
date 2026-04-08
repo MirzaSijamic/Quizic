@@ -47,3 +47,7 @@ def delete_profile_course(profile_course_id: int, conn=Depends(get_db_connection
     if not deleted:
         raise HTTPException(status_code=404, detail="Profile-course relation not found")
     return {"deleted_id": deleted.get("id"), "message": "Profile-course relation deleted"}
+
+@router.get("/profile/{profile_id}/completion-status")
+def get_course_completion_status(profile_id: int, conn=Depends(get_db_connection)):
+    return profile_course_service.get_course_completion_status(conn, profile_id)

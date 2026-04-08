@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import { useState, useMemo } from "react";
+=======
+import { useEffect, useMemo, useState } from "react";
+>>>>>>> 93a29b2 (Progress fixed)
 import { motion } from "motion/react";
 import {
   ChevronDown,
@@ -10,6 +14,7 @@ import {
   Award,
   Filter,
 } from "lucide-react";
+<<<<<<< HEAD
 import {
   getQuizResults,
   getAllQuizExercises,
@@ -19,15 +24,215 @@ import {
 export function AdminQuizResults() {
   const [results] = useState<QuizResult[]>(getQuizResults());
   const [quizzes] = useState(getAllQuizExercises());
+=======
+
+type AdminResult = {
+  id: number;
+  profileId: number;
+  userName: string;
+  exerciseId: number;
+  exerciseTitle: string;
+  courseId: number;
+  courseTitle: string;
+  score: number;
+  passed: boolean;
+  totalQuestions: number;
+  correctAnswers: number;
+  timestamp: string;
+  attemptNumber: number;
+  answers?: Array<{
+    questionId: number;
+    selectedAnswer: string;
+    correctAnswer: string;
+    isCorrect: boolean;
+  }>;
+};
+
+type StudentOption = {
+  id: number;
+  name: string;
+};
+
+type CourseFilterOption = {
+  id: number;
+  name: string;
+};
+
+type QuizFilterOption = {
+  id: number;
+  title: string;
+};
+
+export function AdminQuizResults() {
+  const [results, setResults] = useState<AdminResult[]>([]);
+  const [students, setStudents] = useState<StudentOption[]>([]);
+  const [courses, setCourses] = useState<CourseFilterOption[]>([]);
+  const [quizzes, setQuizzes] = useState<QuizFilterOption[]>([]);
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const [selectedStudentId, setSelectedStudentId] = useState<number | "all">("all");
+  const [selectedCourseId, setSelectedCourseId] = useState<number | "all">("all");
+>>>>>>> 93a29b2 (Progress fixed)
   const [selectedQuizId, setSelectedQuizId] = useState<number | "all">("all");
   const [expandedResultId, setExpandedResultId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"date" | "score">("date");
 
+<<<<<<< HEAD
   // Filter and sort results
   const filteredResults = useMemo(() => {
     let filtered = selectedQuizId === "all" 
       ? results 
       : results.filter(r => r.exerciseId === selectedQuizId);
+=======
+  useEffect(() => {
+    const loadAdminResults = async () => {
+      const apiBase =
+        import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ??
+        `${window.location.protocol}//${window.location.hostname}:8000`;
+
+      setIsLoading(true);
+      setLoadError(null);
+
+      try {
+        const [
+          resultsRes,
+          profilesRes,
+          quizzesRes,
+          lessonsRes,
+          coursesRes,
+        ] = await Promise.all([
+          fetch(`${apiBase}/api/results/`, { credentials: "include" }),
+          fetch(`${apiBase}/api/profiles/`, { credentials: "include" }),
+          fetch(`${apiBase}/api/quizzes/`, { credentials: "include" }),
+          fetch(`${apiBase}/api/lessons/`, { credentials: "include" }),
+          fetch(`${apiBase}/api/courses/`, { credentials: "include" }),
+        ]);
+
+        const responses = [resultsRes, profilesRes, quizzesRes, lessonsRes, coursesRes];
+        const firstFailed = responses.find((res) => !res.ok);
+        if (firstFailed) {
+          const err = await firstFailed.json().catch(() => ({}));
+          throw new Error(err.detail || "Failed to load admin quiz results.");
+        }
+
+        const backendResults = (await resultsRes.json()) as Array<{
+          id: number;
+          profile_id: number;
+          quiz_id: number;
+          score: number | null;
+          passed: boolean;
+          attempt_num: number;
+          completed_at: string;
+          number_correct: number;
+          total_questions: number;
+        }>;
+
+        const backendProfiles = (await profilesRes.json()) as Array<{
+          id: number;
+          full_name?: string;
+          email?: string;
+        }>;
+
+        const backendQuizzes = (await quizzesRes.json()) as Array<{
+          id: number;
+          lesson_id: number;
+          title: string;
+        }>;
+
+        const backendLessons = (await lessonsRes.json()) as Array<{
+          id: number;
+          name: string;
+          course_id?: number;
+        }>;
+
+        const backendCourses = (await coursesRes.json()) as Array<{
+          id: number;
+          name: string;
+        }>;
+
+        const profilesById = new Map(backendProfiles.map((profile) => [profile.id, profile]));
+        const quizzesById = new Map(backendQuizzes.map((quiz) => [quiz.id, quiz]));
+        const lessonsById = new Map(backendLessons.map((lesson) => [lesson.id, lesson]));
+        const coursesById = new Map(backendCourses.map((course) => [course.id, course]));
+
+        const mappedResults: AdminResult[] = backendResults.map((result) => {
+          const profile = profilesById.get(result.profile_id);
+          const quiz = quizzesById.get(result.quiz_id);
+          const lesson = quiz ? lessonsById.get(quiz.lesson_id) : undefined;
+          const resolvedCourseId = Number(lesson?.course_id ?? 0);
+          const course = coursesById.get(resolvedCourseId);
+
+          return {
+            id: result.id,
+            profileId: result.profile_id,
+            userName: profile?.full_name || profile?.email || `Student #${result.profile_id}`,
+            exerciseId: result.quiz_id,
+            exerciseTitle: quiz?.title || `Quiz #${result.quiz_id}`,
+            courseId: resolvedCourseId,
+            courseTitle: course?.name || "Unknown Course",
+            score: Number(result.score ?? 0),
+            passed: result.passed,
+            totalQuestions: result.total_questions,
+            correctAnswers: result.number_correct,
+            timestamp: result.completed_at,
+            attemptNumber: result.attempt_num,
+          };
+        });
+
+        const uniqueStudents = Array.from(
+          new Map(
+            mappedResults.map((result) => [result.profileId, { id: result.profileId, name: result.userName }]),
+          ).values(),
+        ).sort((a, b) => a.name.localeCompare(b.name));
+
+        const uniqueCourses = Array.from(
+          new Map(
+            mappedResults
+              .filter((result) => result.courseId > 0)
+              .map((result) => [result.courseId, { id: result.courseId, name: result.courseTitle }]),
+          ).values(),
+        ).sort((a, b) => a.name.localeCompare(b.name));
+
+        const uniqueQuizzes = Array.from(
+          new Map(
+            mappedResults.map((result) => [result.exerciseId, { id: result.exerciseId, title: result.exerciseTitle }]),
+          ).values(),
+        ).sort((a, b) => a.title.localeCompare(b.title));
+
+        setResults(mappedResults);
+        setStudents(uniqueStudents);
+        setCourses(uniqueCourses);
+        setQuizzes(uniqueQuizzes);
+      } catch (error) {
+        setLoadError(error instanceof Error ? error.message : "Failed to load admin quiz results.");
+        setResults([]);
+        setStudents([]);
+        setCourses([]);
+        setQuizzes([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void loadAdminResults();
+  }, []);
+
+  // Filter and sort results
+  const filteredResults = useMemo(() => {
+    let filtered = selectedStudentId === "all"
+      ? results
+      : results.filter((result) => result.profileId === selectedStudentId);
+
+    if (selectedCourseId !== "all") {
+      filtered = filtered.filter((result) => result.courseId === selectedCourseId);
+    }
+
+    if (selectedQuizId !== "all") {
+      filtered = filtered.filter((result) => result.exerciseId === selectedQuizId);
+    }
+>>>>>>> 93a29b2 (Progress fixed)
 
     // Sort
     filtered.sort((a, b) => {
@@ -39,6 +244,7 @@ export function AdminQuizResults() {
     });
 
     return filtered;
+<<<<<<< HEAD
   }, [results, selectedQuizId, sortBy]);
 
   // Calculate statistics
@@ -46,6 +252,23 @@ export function AdminQuizResults() {
     const filtered = selectedQuizId === "all" 
       ? results 
       : results.filter(r => r.exerciseId === selectedQuizId);
+=======
+  }, [results, selectedStudentId, selectedCourseId, selectedQuizId, sortBy]);
+
+  // Calculate statistics
+  const stats = useMemo(() => {
+    let filtered = selectedStudentId === "all"
+      ? results
+      : results.filter((result) => result.profileId === selectedStudentId);
+
+    if (selectedCourseId !== "all") {
+      filtered = filtered.filter((result) => result.courseId === selectedCourseId);
+    }
+
+    if (selectedQuizId !== "all") {
+      filtered = filtered.filter((result) => result.exerciseId === selectedQuizId);
+    }
+>>>>>>> 93a29b2 (Progress fixed)
 
     const totalAttempts = filtered.length;
     const passedAttempts = filtered.filter(r => r.passed).length;
@@ -62,7 +285,11 @@ export function AdminQuizResults() {
       avgScore,
       passRate,
     };
+<<<<<<< HEAD
   }, [results, selectedQuizId]);
+=======
+  }, [results, selectedStudentId, selectedCourseId, selectedQuizId]);
+>>>>>>> 93a29b2 (Progress fixed)
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 p-8">
@@ -81,7 +308,39 @@ export function AdminQuizResults() {
         <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-neutral-200 dark:border-neutral-800 mb-6">
           <div className="flex items-center gap-4">
             <Filter className="w-5 h-5 text-neutral-400" />
+<<<<<<< HEAD
             <div className="flex-1 flex items-center gap-4">
+=======
+            <div className="flex-1 flex items-center gap-4 flex-wrap">
+              <select
+                value={selectedStudentId === "all" ? "all" : String(selectedStudentId)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSelectedStudentId(value === "all" ? "all" : Number(value));
+                }}
+                className="px-4 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100"
+              >
+                <option value="all">All Students</option>
+                {students.map((student) => (
+                  <option key={student.id} value={student.id}>{student.name}</option>
+                ))}
+              </select>
+
+              <select
+                value={selectedCourseId === "all" ? "all" : String(selectedCourseId)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSelectedCourseId(value === "all" ? "all" : Number(value));
+                }}
+                className="px-4 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100"
+              >
+                <option value="all">All Courses</option>
+                {courses.map((course) => (
+                  <option key={course.id} value={course.id}>{course.name}</option>
+                ))}
+              </select>
+
+>>>>>>> 93a29b2 (Progress fixed)
               <select
                 value={selectedQuizId === "all" ? "all" : String(selectedQuizId)}
                 onChange={(e) => {
@@ -91,7 +350,11 @@ export function AdminQuizResults() {
                 className="px-4 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100"
               >
                 <option value="all">All Quizzes</option>
+<<<<<<< HEAD
                 {quizzes.map(quiz => (
+=======
+                {quizzes.map((quiz) => (
+>>>>>>> 93a29b2 (Progress fixed)
                   <option key={quiz.id} value={quiz.id}>{quiz.title}</option>
                 ))}
               </select>
@@ -138,7 +401,19 @@ export function AdminQuizResults() {
 
         {/* Results List */}
         <div className="space-y-4">
+<<<<<<< HEAD
           {filteredResults.length === 0 ? (
+=======
+          {isLoading ? (
+            <div className="bg-white dark:bg-neutral-900 rounded-2xl p-12 text-center border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400">
+              Loading results...
+            </div>
+          ) : loadError ? (
+            <div className="bg-white dark:bg-neutral-900 rounded-2xl p-12 text-center border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400">
+              {loadError}
+            </div>
+          ) : filteredResults.length === 0 ? (
+>>>>>>> 93a29b2 (Progress fixed)
             <div className="bg-white dark:bg-neutral-900 rounded-2xl p-12 text-center border border-neutral-200 dark:border-neutral-800">
               <Users className="w-12 h-12 text-neutral-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
@@ -199,7 +474,11 @@ function StatCard({ icon, label, value, color }: StatCardProps) {
 }
 
 type ResultCardProps = {
+<<<<<<< HEAD
   result: QuizResult;
+=======
+  result: AdminResult;
+>>>>>>> 93a29b2 (Progress fixed)
   isExpanded: boolean;
   onToggleExpand: () => void;
 };

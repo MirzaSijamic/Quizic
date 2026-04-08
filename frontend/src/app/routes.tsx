@@ -10,6 +10,10 @@ import { LearnMore } from "./pages/LearnMore";
 import { AdminQuizManager } from "./pages/AdminQuizManager";
 import { AdminQuizResults } from "./pages/AdminQuizResults";
 import { OAuthCallback } from "./pages/OAuthCallback";
+<<<<<<< HEAD
+=======
+import { Test } from "./pages/Test";
+>>>>>>> 93a29b2 (Progress fixed)
 
 type StoredAuthState = {
   authenticated?: boolean;
@@ -80,6 +84,10 @@ export const router = createBrowserRouter([
       { path: "lessons/:courseId", element: <CourseDetail /> },
       { path: "progress", element: <Progress /> },
       { path: "learn-more", element: <LearnMore /> },
+<<<<<<< HEAD
+=======
+      { path: "test", element: <Test /> },
+>>>>>>> 93a29b2 (Progress fixed)
       {
         path: "admin/quizzes",
         element: (
