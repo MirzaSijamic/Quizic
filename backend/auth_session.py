@@ -3,10 +3,7 @@ import hashlib
 import hmac
 import json
 import os
-<<<<<<< HEAD
-=======
 from urllib.parse import unquote
->>>>>>> 93a29b2 (Progress fixed)
 
 
 def _session_secret() -> bytes:
@@ -25,12 +22,9 @@ def decode_session_user(token: str | None) -> dict | None:
     if not token:
         return None
 
-<<<<<<< HEAD
-=======
     # Swagger/curl/manual clients may pass URL-encoded cookie values.
     token = unquote(token)
 
->>>>>>> 93a29b2 (Progress fixed)
     try:
         payload, signature = token.rsplit(".", 1)
     except ValueError:

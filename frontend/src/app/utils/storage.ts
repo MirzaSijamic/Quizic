@@ -94,11 +94,8 @@ export type LessonOption = {
   id: number;
   name: string;
   course_id?: number;
-<<<<<<< HEAD
-=======
   video_link?: string | null;
   material_link?: string | null;
->>>>>>> 93a29b2 (Progress fixed)
 };
 
 type BackendCourse = {
@@ -106,8 +103,6 @@ type BackendCourse = {
   name: string;
 };
 
-<<<<<<< HEAD
-=======
 export type CourseOption = {
   id: number;
   name: string;
@@ -121,7 +116,6 @@ export type QuizOption = {
   passing_score: number;
 };
 
->>>>>>> 93a29b2 (Progress fixed)
 const normalizeOptions = (answers: unknown): string[] => {
   if (Array.isArray(answers)) {
     return answers.map((value) => String(value));
@@ -272,8 +266,6 @@ export async function fetchLessonsFromApi(): Promise<LessonOption[]> {
   return (await lessonsRes.json()) as LessonOption[];
 }
 
-<<<<<<< HEAD
-=======
 export async function fetchCoursesFromApi(): Promise<CourseOption[]> {
   const apiBase = getApiBase();
   const coursesRes = await fetch(`${apiBase}/api/courses/`, {
@@ -302,7 +294,6 @@ export async function fetchQuizzesFromApi(): Promise<QuizOption[]> {
   return (await quizzesRes.json()) as QuizOption[];
 }
 
->>>>>>> 93a29b2 (Progress fixed)
 export async function deleteAdminQuizFromApi(quizId: number): Promise<void> {
   const apiBase = getApiBase();
   const res = await fetch(`${apiBase}/api/quizzes/${quizId}`, {

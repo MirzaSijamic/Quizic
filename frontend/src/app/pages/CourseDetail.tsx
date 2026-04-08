@@ -2,13 +2,6 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router";
 import { motion } from "motion/react";
 import { ArrowLeft, Play, FileText, PenTool, ShieldAlert, ChevronRight, Plus, X, Users } from "lucide-react";
-<<<<<<< HEAD
-import { MOCK_COURSES } from "../data";
-import { ExerciseQuiz, type QuizExercise } from "../components/ExerciseQuiz";
-import { getQuizExercisesByCourse, type QuizExerciseData } from "../utils/storage";
-import { isStoredUserAdmin } from "../utils/auth";
-
-=======
 import { type Course, type CourseLevel } from "../data";
 import { ExerciseQuiz, type QuizExercise } from "../components/ExerciseQuiz";
 import {
@@ -107,27 +100,15 @@ const buildCourseFromApi = (
   };
 };
 
->>>>>>> 93a29b2 (Progress fixed)
 export function CourseDetail() {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-<<<<<<< HEAD
-=======
   const locationState = (location.state as CourseDetailLocationState | null) || null;
->>>>>>> 93a29b2 (Progress fixed)
   const canAccessAdminView = isStoredUserAdmin();
 
   // Support inheriting Admin view state from previous page, but allow toggling here
   const [isAdminView, setIsAdminView] = useState(
-<<<<<<< HEAD
-    canAccessAdminView && Boolean(location.state?.isAdminView),
-  );
-  const [, setForceRender] = useState(0);
-
-  const [showLessonModal, setShowLessonModal] = useState(false);
-  const [newLessonTitle, setNewLessonTitle] = useState("");
-=======
     canAccessAdminView && Boolean(locationState?.isAdminView),
   );
   const [course, setCourse] = useState<Course | null>(locationState?.courseData || null);
@@ -139,20 +120,16 @@ export function CourseDetail() {
   const [newLessonTitle, setNewLessonTitle] = useState("");
   const [isCreatingLesson, setIsCreatingLesson] = useState(false);
   const [createLessonError, setCreateLessonError] = useState<string | null>(null);
->>>>>>> 93a29b2 (Progress fixed)
 
   const [showResourceModal, setShowResourceModal] = useState(false);
   const [activeLessonIdx, setActiveLessonIdx] = useState<number | null>(null);
   const [resourceType, setResourceType] = useState<"videos" | "materials" | "exercises">("videos");
   const [resourceTitle, setResourceTitle] = useState("");
   const [resourceUrl, setResourceUrl] = useState("");
-<<<<<<< HEAD
-=======
   const [isEditingResource, setIsEditingResource] = useState(false);
   const [editingResourceIdx, setEditingResourceIdx] = useState<number | null>(null);
   const [isUpdatingResource, setIsUpdatingResource] = useState(false);
   const [updateResourceError, setUpdateResourceError] = useState<string | null>(null);
->>>>>>> 93a29b2 (Progress fixed)
 
   const [activeQuiz, setActiveQuiz] = useState<QuizExercise | null>(null);
   const [storageQuizzes, setStorageQuizzes] = useState<QuizExerciseData[]>([]);
@@ -169,16 +146,6 @@ export function CourseDetail() {
     ? extractedNumericCourseId
     : null;
 
-<<<<<<< HEAD
-  const course = MOCK_COURSES.find((c) => {
-    if (resolvedCourseId !== null && c.id === resolvedCourseId) {
-      return true;
-    }
-
-    // Backward compatibility for stale links/state where IDs were previously string-like.
-    return String(c.id) === normalizedCourseIdParam;
-  });
-=======
   useEffect(() => {
     const loadCourse = async () => {
       if (resolvedCourseId === null) {
@@ -225,7 +192,6 @@ export function CourseDetail() {
 
     void loadCourse();
   }, [resolvedCourseId]);
->>>>>>> 93a29b2 (Progress fixed)
 
   // Load quizzes from storage for this course
   useEffect(() => {
@@ -371,8 +337,6 @@ export function CourseDetail() {
     }
   };
 
-<<<<<<< HEAD
-=======
   if (isLoadingCourse) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 text-neutral-500">
@@ -381,18 +345,13 @@ export function CourseDetail() {
     );
   }
 
->>>>>>> 93a29b2 (Progress fixed)
   if (!course) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 text-neutral-500">
         <ShieldAlert className="w-12 h-12 text-pink-500" />
-<<<<<<< HEAD
-        <h2 className="text-xl font-bold text-neutral-800 dark:text-neutral-200">Course not found</h2>
-=======
         <h2 className="text-xl font-bold text-neutral-800 dark:text-neutral-200">
           {courseLoadError || "Course not found"}
         </h2>
->>>>>>> 93a29b2 (Progress fixed)
         <button
           onClick={() => navigate("/lessons")}
           className="text-pink-600 hover:underline flex items-center gap-2"
@@ -403,31 +362,6 @@ export function CourseDetail() {
     );
   }
 
-<<<<<<< HEAD
-  const handleAddLesson = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newLessonTitle.trim()) return;
-
-    course.lessons.push({
-      title: newLessonTitle,
-      videos: [],
-      materials: [],
-      exercises: []
-    });
-
-    setNewLessonTitle("");
-    setShowLessonModal(false);
-    setForceRender(p => p + 1);
-  };
-
-  const handleAddResource = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!resourceTitle.trim() || activeLessonIdx === null) return;
-
-    course.lessons[activeLessonIdx][resourceType].push({
-      title: resourceTitle,
-      url: resourceUrl || "#"
-=======
   const handleAddLesson = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newLessonTitle.trim() || !course) return;
@@ -557,20 +491,14 @@ export function CourseDetail() {
     setCourse({
       ...course,
       lessons: updatedLessons,
->>>>>>> 93a29b2 (Progress fixed)
     });
 
     setResourceTitle("");
     setResourceUrl("");
-<<<<<<< HEAD
-    setShowResourceModal(false);
-    setForceRender(p => p + 1);
-=======
     setIsEditingResource(false);
     setEditingResourceIdx(null);
     setShowResourceModal(false);
     setIsUpdatingResource(false);
->>>>>>> 93a29b2 (Progress fixed)
   };
 
   return (
@@ -637,14 +565,11 @@ export function CourseDetail() {
                     onClick={() => {
                       setActiveLessonIdx(idx);
                       setResourceType("videos");
-<<<<<<< HEAD
-=======
                       setResourceTitle("");
                       setResourceUrl("");
                       setIsEditingResource(false);
                       setEditingResourceIdx(null);
                       setUpdateResourceError(null);
->>>>>>> 93a29b2 (Progress fixed)
                       setShowResourceModal(true);
                     }}
                     className="flex items-center gap-1.5 text-sm font-medium text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-900/20 px-3 py-1.5 rounded-lg hover:bg-pink-100 dark:hover:bg-pink-900/40 transition-colors"
@@ -663,40 +588,15 @@ export function CourseDetail() {
                   {/* Videos */}
                   {(lesson.videos.length > 0 || isAdminView) && (
                     <div className="space-y-3 bg-neutral-50 dark:bg-neutral-950 p-5 rounded-2xl border border-neutral-100 dark:border-neutral-800">
-<<<<<<< HEAD
-                      <div className="flex items-center justify-between mb-4">
-=======
                       <div className="mb-4">
->>>>>>> 93a29b2 (Progress fixed)
                         <h3 className="font-semibold text-neutral-800 dark:text-neutral-200 flex items-center gap-2">
                           <Play className="w-4 h-4 text-blue-500" />
                           Videos
                         </h3>
-<<<<<<< HEAD
-                        {isAdminView && (
-                          <button
-                            onClick={() => {
-                              setActiveLessonIdx(idx);
-                              setResourceType("videos");
-                              setShowResourceModal(true);
-                            }}
-                            className="p-1 rounded-md text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
-                        )}
-=======
->>>>>>> 93a29b2 (Progress fixed)
                       </div>
                       <ul className="space-y-2">
                         {lesson.videos.map((link, lIdx) => (
                           <li key={lIdx}>
-<<<<<<< HEAD
-                            <a href={link.url} className="flex items-start gap-2 p-2 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 text-neutral-700 dark:text-neutral-300 hover:text-blue-700 dark:hover:text-blue-300 transition-colors group">
-                              <ChevronRight className="w-4 h-4 mt-0.5 opacity-50 group-hover:opacity-100 shrink-0 text-blue-500" />
-                              <span className="text-sm font-medium leading-snug">{link.title}</span>
-                            </a>
-=======
                             {isAdminView ? (
                               <button
                                 onClick={() => {
@@ -720,7 +620,6 @@ export function CourseDetail() {
                                 <span className="text-sm font-medium leading-snug">{link.title}</span>
                               </a>
                             )}
->>>>>>> 93a29b2 (Progress fixed)
                           </li>
                         ))}
                         {lesson.videos.length === 0 && isAdminView && (
@@ -733,40 +632,15 @@ export function CourseDetail() {
                   {/* Materials */}
                   {(lesson.materials.length > 0 || isAdminView) && (
                     <div className="space-y-3 bg-neutral-50 dark:bg-neutral-950 p-5 rounded-2xl border border-neutral-100 dark:border-neutral-800">
-<<<<<<< HEAD
-                      <div className="flex items-center justify-between mb-4">
-=======
                       <div className="mb-4">
->>>>>>> 93a29b2 (Progress fixed)
                         <h3 className="font-semibold text-neutral-800 dark:text-neutral-200 flex items-center gap-2">
                           <FileText className="w-4 h-4 text-purple-500" />
                           Materials
                         </h3>
-<<<<<<< HEAD
-                        {isAdminView && (
-                          <button
-                            onClick={() => {
-                              setActiveLessonIdx(idx);
-                              setResourceType("materials");
-                              setShowResourceModal(true);
-                            }}
-                            className="p-1 rounded-md text-purple-500 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
-                        )}
-=======
->>>>>>> 93a29b2 (Progress fixed)
                       </div>
                       <ul className="space-y-2">
                         {lesson.materials.map((link, lIdx) => (
                           <li key={lIdx}>
-<<<<<<< HEAD
-                            <a href={link.url} className="flex items-start gap-2 p-2 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 text-neutral-700 dark:text-neutral-300 hover:text-purple-700 dark:hover:text-purple-300 transition-colors group">
-                              <ChevronRight className="w-4 h-4 mt-0.5 opacity-50 group-hover:opacity-100 shrink-0 text-purple-500" />
-                              <span className="text-sm font-medium leading-snug">{link.title}</span>
-                            </a>
-=======
                             {isAdminView ? (
                               <button
                                 onClick={() => {
@@ -790,7 +664,6 @@ export function CourseDetail() {
                                 <span className="text-sm font-medium leading-snug">{link.title}</span>
                               </a>
                             )}
->>>>>>> 93a29b2 (Progress fixed)
                           </li>
                         ))}
                         {lesson.materials.length === 0 && isAdminView && (
@@ -803,30 +676,11 @@ export function CourseDetail() {
                   {/* Exercises */}
                   {(lesson.exercises.length > 0 || hasStorageQuizzes || isAdminView) && (
                     <div className="space-y-3 bg-neutral-50 dark:bg-neutral-950 p-5 rounded-2xl border border-neutral-100 dark:border-neutral-800">
-<<<<<<< HEAD
-                      <div className="flex items-center justify-between mb-4">
-=======
                       <div className="mb-4">
->>>>>>> 93a29b2 (Progress fixed)
                         <h3 className="font-semibold text-neutral-800 dark:text-neutral-200 flex items-center gap-2">
                           <PenTool className="w-4 h-4 text-pink-500" />
                           Exercises
                         </h3>
-<<<<<<< HEAD
-                        {isAdminView && (
-                          <button
-                            onClick={() => {
-                              setActiveLessonIdx(idx);
-                              setResourceType("exercises");
-                              setShowResourceModal(true);
-                            }}
-                            className="p-1 rounded-md text-pink-500 hover:bg-pink-100 dark:hover:bg-pink-900/30 transition-colors"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
-                        )}
-=======
->>>>>>> 93a29b2 (Progress fixed)
                       </div>
                       <ul className="space-y-2">
                         {/* Hardcoded exercises from data.ts */}
@@ -938,11 +792,6 @@ export function CourseDetail() {
                 />
               </div>
 
-<<<<<<< HEAD
-              <div className="pt-4 flex justify-end gap-3">
-                <button
-                  type="button"
-=======
               {createLessonError && (
                 <p className="text-xs text-red-600 dark:text-red-400">{createLessonError}</p>
               )}
@@ -951,7 +800,6 @@ export function CourseDetail() {
                 <button
                   type="button"
                   disabled={isCreatingLesson}
->>>>>>> 93a29b2 (Progress fixed)
                   onClick={() => setShowLessonModal(false)}
                   className="px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800 rounded-xl transition-colors"
                 >
@@ -959,16 +807,10 @@ export function CourseDetail() {
                 </button>
                 <button
                   type="submit"
-<<<<<<< HEAD
-                  className="px-4 py-2 text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 rounded-xl transition-colors shadow-sm"
-                >
-                  Create Lesson
-=======
                   disabled={isCreatingLesson}
                   className="px-4 py-2 text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 rounded-xl transition-colors shadow-sm"
                 >
                   {isCreatingLesson ? "Creating..." : "Create Lesson"}
->>>>>>> 93a29b2 (Progress fixed)
                 </button>
               </div>
             </form>
@@ -999,10 +841,7 @@ export function CourseDetail() {
                 <select
                   value={resourceType}
                   onChange={(e) => setResourceType(e.target.value as any)}
-<<<<<<< HEAD
-=======
                   disabled={isEditingResource}
->>>>>>> 93a29b2 (Progress fixed)
                   className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 appearance-none capitalize"
                 >
                   <option value="videos">Video</option>
@@ -1035,12 +874,6 @@ export function CourseDetail() {
                 />
               </div>
 
-<<<<<<< HEAD
-              <div className="pt-4 flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowResourceModal(false)}
-=======
               {updateResourceError && (
                 <p className="text-xs text-red-600 dark:text-red-400">{updateResourceError}</p>
               )}
@@ -1057,23 +890,16 @@ export function CourseDetail() {
                     setResourceUrl("");
                     setUpdateResourceError(null);
                   }}
->>>>>>> 93a29b2 (Progress fixed)
                   className="px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800 rounded-xl transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-<<<<<<< HEAD
-                  className="px-4 py-2 text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 rounded-xl transition-colors shadow-sm"
-                >
-                  Add Resource
-=======
                   disabled={isUpdatingResource}
                   className="px-4 py-2 text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 rounded-xl transition-colors shadow-sm"
                 >
                   {isUpdatingResource ? "Saving..." : isEditingResource ? "Update Resource" : "Add Resource"}
->>>>>>> 93a29b2 (Progress fixed)
                 </button>
               </div>
             </form>

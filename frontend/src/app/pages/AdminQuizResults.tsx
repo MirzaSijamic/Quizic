@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import { useState, useMemo } from "react";
-=======
 import { useEffect, useMemo, useState } from "react";
->>>>>>> 93a29b2 (Progress fixed)
 import { motion } from "motion/react";
 import {
   ChevronDown,
@@ -14,17 +10,6 @@ import {
   Award,
   Filter,
 } from "lucide-react";
-<<<<<<< HEAD
-import {
-  getQuizResults,
-  getAllQuizExercises,
-  type QuizResult,
-} from "../utils/storage";
-
-export function AdminQuizResults() {
-  const [results] = useState<QuizResult[]>(getQuizResults());
-  const [quizzes] = useState(getAllQuizExercises());
-=======
 
 type AdminResult = {
   id: number;
@@ -74,18 +59,10 @@ export function AdminQuizResults() {
 
   const [selectedStudentId, setSelectedStudentId] = useState<number | "all">("all");
   const [selectedCourseId, setSelectedCourseId] = useState<number | "all">("all");
->>>>>>> 93a29b2 (Progress fixed)
   const [selectedQuizId, setSelectedQuizId] = useState<number | "all">("all");
   const [expandedResultId, setExpandedResultId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"date" | "score">("date");
 
-<<<<<<< HEAD
-  // Filter and sort results
-  const filteredResults = useMemo(() => {
-    let filtered = selectedQuizId === "all" 
-      ? results 
-      : results.filter(r => r.exerciseId === selectedQuizId);
-=======
   useEffect(() => {
     const loadAdminResults = async () => {
       const apiBase =
@@ -232,7 +209,6 @@ export function AdminQuizResults() {
     if (selectedQuizId !== "all") {
       filtered = filtered.filter((result) => result.exerciseId === selectedQuizId);
     }
->>>>>>> 93a29b2 (Progress fixed)
 
     // Sort
     filtered.sort((a, b) => {
@@ -244,15 +220,6 @@ export function AdminQuizResults() {
     });
 
     return filtered;
-<<<<<<< HEAD
-  }, [results, selectedQuizId, sortBy]);
-
-  // Calculate statistics
-  const stats = useMemo(() => {
-    const filtered = selectedQuizId === "all" 
-      ? results 
-      : results.filter(r => r.exerciseId === selectedQuizId);
-=======
   }, [results, selectedStudentId, selectedCourseId, selectedQuizId, sortBy]);
 
   // Calculate statistics
@@ -268,7 +235,6 @@ export function AdminQuizResults() {
     if (selectedQuizId !== "all") {
       filtered = filtered.filter((result) => result.exerciseId === selectedQuizId);
     }
->>>>>>> 93a29b2 (Progress fixed)
 
     const totalAttempts = filtered.length;
     const passedAttempts = filtered.filter(r => r.passed).length;
@@ -285,11 +251,7 @@ export function AdminQuizResults() {
       avgScore,
       passRate,
     };
-<<<<<<< HEAD
-  }, [results, selectedQuizId]);
-=======
   }, [results, selectedStudentId, selectedCourseId, selectedQuizId]);
->>>>>>> 93a29b2 (Progress fixed)
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 p-8">
@@ -308,9 +270,6 @@ export function AdminQuizResults() {
         <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-neutral-200 dark:border-neutral-800 mb-6">
           <div className="flex items-center gap-4">
             <Filter className="w-5 h-5 text-neutral-400" />
-<<<<<<< HEAD
-            <div className="flex-1 flex items-center gap-4">
-=======
             <div className="flex-1 flex items-center gap-4 flex-wrap">
               <select
                 value={selectedStudentId === "all" ? "all" : String(selectedStudentId)}
@@ -340,7 +299,6 @@ export function AdminQuizResults() {
                 ))}
               </select>
 
->>>>>>> 93a29b2 (Progress fixed)
               <select
                 value={selectedQuizId === "all" ? "all" : String(selectedQuizId)}
                 onChange={(e) => {
@@ -350,11 +308,7 @@ export function AdminQuizResults() {
                 className="px-4 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100"
               >
                 <option value="all">All Quizzes</option>
-<<<<<<< HEAD
-                {quizzes.map(quiz => (
-=======
                 {quizzes.map((quiz) => (
->>>>>>> 93a29b2 (Progress fixed)
                   <option key={quiz.id} value={quiz.id}>{quiz.title}</option>
                 ))}
               </select>
@@ -401,9 +355,6 @@ export function AdminQuizResults() {
 
         {/* Results List */}
         <div className="space-y-4">
-<<<<<<< HEAD
-          {filteredResults.length === 0 ? (
-=======
           {isLoading ? (
             <div className="bg-white dark:bg-neutral-900 rounded-2xl p-12 text-center border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400">
               Loading results...
@@ -413,7 +364,6 @@ export function AdminQuizResults() {
               {loadError}
             </div>
           ) : filteredResults.length === 0 ? (
->>>>>>> 93a29b2 (Progress fixed)
             <div className="bg-white dark:bg-neutral-900 rounded-2xl p-12 text-center border border-neutral-200 dark:border-neutral-800">
               <Users className="w-12 h-12 text-neutral-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
@@ -474,11 +424,7 @@ function StatCard({ icon, label, value, color }: StatCardProps) {
 }
 
 type ResultCardProps = {
-<<<<<<< HEAD
-  result: QuizResult;
-=======
   result: AdminResult;
->>>>>>> 93a29b2 (Progress fixed)
   isExpanded: boolean;
   onToggleExpand: () => void;
 };
