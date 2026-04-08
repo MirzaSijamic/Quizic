@@ -14,23 +14,14 @@ import {
 import {
   deleteAdminQuizFromApi,
   fetchAdminQuizzesFromApi,
-<<<<<<< HEAD
-  fetchLessonsFromApi,
-  saveAdminQuizToApi,
-=======
   fetchCoursesFromApi,
   fetchLessonsFromApi,
   saveAdminQuizToApi,
   type CourseOption,
->>>>>>> 93a29b2 (Progress fixed)
   type LessonOption,
   type QuizExerciseData,
   type QuizQuestion,
 } from "../utils/storage";
-<<<<<<< HEAD
-import { MOCK_COURSES } from "../data";
-=======
->>>>>>> 93a29b2 (Progress fixed)
 
 export function AdminQuizManager() {
   const [quizzes, setQuizzes] = useState<QuizExerciseData[]>([]);
@@ -288,14 +279,10 @@ type QuizEditorModalProps = {
 function QuizEditorModal({ quiz, onClose, onSave }: QuizEditorModalProps) {
   const isEditing = !!quiz;
   const [isSaving, setIsSaving] = useState(false);
-<<<<<<< HEAD
-  const [availableLessons, setAvailableLessons] = useState<LessonOption[]>([]);
-=======
   const [availableCourses, setAvailableCourses] = useState<CourseOption[]>([]);
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
   const [availableLessons, setAvailableLessons] = useState<LessonOption[]>([]);
   const [coursesError, setCoursesError] = useState<string | null>(null);
->>>>>>> 93a29b2 (Progress fixed)
   const [isLoadingLessons, setIsLoadingLessons] = useState(true);
   const [lessonsError, setLessonsError] = useState<string | null>(null);
   
@@ -325,23 +312,6 @@ function QuizEditorModal({ quiz, onClose, onSave }: QuizEditorModalProps) {
   });
 
   useEffect(() => {
-<<<<<<< HEAD
-    const loadLessons = async () => {
-      try {
-        setLessonsError(null);
-        setAvailableLessons(await fetchLessonsFromApi());
-      } catch (error) {
-        setLessonsError(error instanceof Error ? error.message : "Failed to load lessons.");
-      } finally {
-        setIsLoadingLessons(false);
-      }
-    };
-
-    void loadLessons();
-  }, []);
-
-  const filteredLessons = availableLessons.filter((lesson) => lesson.course_id === formData.courseId);
-=======
     const loadCatalogData = async () => {
       setCoursesError(null);
       setLessonsError(null);
@@ -384,7 +354,6 @@ function QuizEditorModal({ quiz, onClose, onSave }: QuizEditorModalProps) {
     )?.id ??
     availableLessons.find((lesson) => lesson.name === formData.lessonTitle)?.id ??
     "";
->>>>>>> 93a29b2 (Progress fixed)
 
   const handleAddQuestion = () => {
     if (!currentQuestion.question || currentQuestion.options?.some(o => !o.trim())) {
@@ -517,26 +486,6 @@ function QuizEditorModal({ quiz, onClose, onSave }: QuizEditorModalProps) {
                   Course *
                 </label>
                 <select
-<<<<<<< HEAD
-                  value={formData.courseId}
-                  onChange={(e) => {
-                    const parsedCourseId = Number(e.target.value);
-                    const course = MOCK_COURSES.find(c => c.id === parsedCourseId);
-                    setFormData({
-                      ...formData,
-                      courseId: parsedCourseId,
-                      courseTitle: course?.title || "",
-                      lessonTitle: "",
-                    });
-                  }}
-                  className="w-full px-4 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100"
-                >
-                  <option value="">Select a course</option>
-                  {MOCK_COURSES.map(course => (
-                    <option key={course.id} value={course.id}>{course.title}</option>
-                  ))}
-                </select>
-=======
                   value={formData.courseId || ""}
                   onChange={(e) => {
                     const parsedCourseId = Number(e.target.value);
@@ -559,7 +508,6 @@ function QuizEditorModal({ quiz, onClose, onSave }: QuizEditorModalProps) {
                 {coursesError && (
                   <p className="text-xs text-red-600 dark:text-red-400 mt-2">{coursesError}</p>
                 )}
->>>>>>> 93a29b2 (Progress fixed)
               </div>
 
               <div>
@@ -567,22 +515,6 @@ function QuizEditorModal({ quiz, onClose, onSave }: QuizEditorModalProps) {
                   Lesson Title *
                 </label>
                 <select
-<<<<<<< HEAD
-                  value={formData.lessonTitle}
-                  onChange={(e) => setFormData({ ...formData, lessonTitle: e.target.value })}
-                  disabled={!formData.courseId || isLoadingLessons}
-                  className="w-full px-4 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100"
-                >
-                  <option value="">
-                    {!formData.courseId
-                      ? "Select a course first"
-                      : isLoadingLessons
-                      ? "Loading lessons..."
-                      : "Select a lesson"}
-                  </option>
-                  {filteredLessons.map((lesson) => (
-                    <option key={lesson.id} value={lesson.name}>
-=======
                   value={selectedLessonId}
                   onChange={(e) => {
                     const parsedLessonId = Number(e.target.value);
@@ -619,7 +551,6 @@ function QuizEditorModal({ quiz, onClose, onSave }: QuizEditorModalProps) {
                   </option>
                   {lessonOptions.map((lesson) => (
                     <option key={lesson.id} value={lesson.id}>
->>>>>>> 93a29b2 (Progress fixed)
                       {lesson.name}
                     </option>
                   ))}
