@@ -94,11 +94,26 @@ export type LessonOption = {
   id: number;
   name: string;
   course_id?: number;
+  video_link?: string | null;
+  material_link?: string | null;
 };
 
 type BackendCourse = {
   id: number;
   name: string;
+};
+
+export type CourseOption = {
+  id: number;
+  name: string;
+  difficulty?: string | null;
+};
+
+export type QuizOption = {
+  id: number;
+  lesson_id: number;
+  title: string;
+  passing_score: number;
 };
 
 const normalizeOptions = (answers: unknown): string[] => {
@@ -249,6 +264,34 @@ export async function fetchLessonsFromApi(): Promise<LessonOption[]> {
   }
 
   return (await lessonsRes.json()) as LessonOption[];
+}
+
+export async function fetchCoursesFromApi(): Promise<CourseOption[]> {
+  const apiBase = getApiBase();
+  const coursesRes = await fetch(`${apiBase}/api/courses/`, {
+    credentials: "include",
+  });
+
+  if (!coursesRes.ok) {
+    const err = await coursesRes.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to load courses.");
+  }
+
+  return (await coursesRes.json()) as CourseOption[];
+}
+
+export async function fetchQuizzesFromApi(): Promise<QuizOption[]> {
+  const apiBase = getApiBase();
+  const quizzesRes = await fetch(`${apiBase}/api/quizzes/`, {
+    credentials: "include",
+  });
+
+  if (!quizzesRes.ok) {
+    const err = await quizzesRes.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to load quizzes.");
+  }
+
+  return (await quizzesRes.json()) as QuizOption[];
 }
 
 export async function deleteAdminQuizFromApi(quizId: number): Promise<void> {

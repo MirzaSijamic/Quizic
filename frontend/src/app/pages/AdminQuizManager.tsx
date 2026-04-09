@@ -14,13 +14,14 @@ import {
 import {
   deleteAdminQuizFromApi,
   fetchAdminQuizzesFromApi,
+  fetchCoursesFromApi,
   fetchLessonsFromApi,
   saveAdminQuizToApi,
+  type CourseOption,
   type LessonOption,
   type QuizExerciseData,
   type QuizQuestion,
 } from "../utils/storage";
-import { MOCK_COURSES } from "../data";
 
 export function AdminQuizManager() {
   const [quizzes, setQuizzes] = useState<QuizExerciseData[]>([]);
@@ -278,7 +279,10 @@ type QuizEditorModalProps = {
 function QuizEditorModal({ quiz, onClose, onSave }: QuizEditorModalProps) {
   const isEditing = !!quiz;
   const [isSaving, setIsSaving] = useState(false);
+  const [availableCourses, setAvailableCourses] = useState<CourseOption[]>([]);
+  const [isLoadingCourses, setIsLoadingCourses] = useState(true);
   const [availableLessons, setAvailableLessons] = useState<LessonOption[]>([]);
+  const [coursesError, setCoursesError] = useState<string | null>(null);
   const [isLoadingLessons, setIsLoadingLessons] = useState(true);
   const [lessonsError, setLessonsError] = useState<string | null>(null);
   
@@ -308,21 +312,48 @@ function QuizEditorModal({ quiz, onClose, onSave }: QuizEditorModalProps) {
   });
 
   useEffect(() => {
-    const loadLessons = async () => {
-      try {
-        setLessonsError(null);
-        setAvailableLessons(await fetchLessonsFromApi());
-      } catch (error) {
-        setLessonsError(error instanceof Error ? error.message : "Failed to load lessons.");
-      } finally {
-        setIsLoadingLessons(false);
+    const loadCatalogData = async () => {
+      setCoursesError(null);
+      setLessonsError(null);
+
+      const [coursesResult, lessonsResult] = await Promise.allSettled([
+        fetchCoursesFromApi(),
+        fetchLessonsFromApi(),
+      ]);
+
+      if (coursesResult.status === "fulfilled") {
+        setAvailableCourses(coursesResult.value);
+      } else {
+        const error = coursesResult.reason;
+        setCoursesError(error instanceof Error ? error.message : "Failed to load courses.");
       }
+
+      if (lessonsResult.status === "fulfilled") {
+        setAvailableLessons(lessonsResult.value);
+      } else {
+        const error = lessonsResult.reason;
+        setLessonsError(error instanceof Error ? error.message : "Failed to load lessons.");
+      }
+
+      setIsLoadingCourses(false);
+      setIsLoadingLessons(false);
     };
 
-    void loadLessons();
+    void loadCatalogData();
   }, []);
 
-  const filteredLessons = availableLessons.filter((lesson) => lesson.course_id === formData.courseId);
+  const filteredLessons = availableLessons.filter(
+    (lesson) => Number(lesson.course_id) === Number(formData.courseId),
+  );
+  const lessonOptions = formData.courseId ? filteredLessons : availableLessons;
+  const selectedLessonId =
+    availableLessons.find(
+      (lesson) =>
+        lesson.name === formData.lessonTitle &&
+        Number(lesson.course_id) === Number(formData.courseId),
+    )?.id ??
+    availableLessons.find((lesson) => lesson.name === formData.lessonTitle)?.id ??
+    "";
 
   const handleAddQuestion = () => {
     if (!currentQuestion.question || currentQuestion.options?.some(o => !o.trim())) {
@@ -455,24 +486,28 @@ function QuizEditorModal({ quiz, onClose, onSave }: QuizEditorModalProps) {
                   Course *
                 </label>
                 <select
-                  value={formData.courseId}
+                  value={formData.courseId || ""}
                   onChange={(e) => {
                     const parsedCourseId = Number(e.target.value);
-                    const course = MOCK_COURSES.find(c => c.id === parsedCourseId);
+                    const course = availableCourses.find((entry) => entry.id === parsedCourseId);
                     setFormData({
                       ...formData,
                       courseId: parsedCourseId,
-                      courseTitle: course?.title || "",
+                      courseTitle: course?.name || "",
                       lessonTitle: "",
                     });
                   }}
+                  disabled={isLoadingCourses}
                   className="w-full px-4 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100"
                 >
-                  <option value="">Select a course</option>
-                  {MOCK_COURSES.map(course => (
-                    <option key={course.id} value={course.id}>{course.title}</option>
+                  <option value="">{isLoadingCourses ? "Loading courses..." : "Select a course"}</option>
+                  {availableCourses.map((course) => (
+                    <option key={course.id} value={course.id}>{course.name}</option>
                   ))}
                 </select>
+                {coursesError && (
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-2">{coursesError}</p>
+                )}
               </div>
 
               <div>
@@ -480,20 +515,42 @@ function QuizEditorModal({ quiz, onClose, onSave }: QuizEditorModalProps) {
                   Lesson Title *
                 </label>
                 <select
-                  value={formData.lessonTitle}
-                  onChange={(e) => setFormData({ ...formData, lessonTitle: e.target.value })}
-                  disabled={!formData.courseId || isLoadingLessons}
+                  value={selectedLessonId}
+                  onChange={(e) => {
+                    const parsedLessonId = Number(e.target.value);
+                    const lesson = availableLessons.find((entry) => entry.id === parsedLessonId);
+
+                    if (!lesson) {
+                      setFormData({ ...formData, lessonTitle: "" });
+                      return;
+                    }
+
+                    const parsedCourseId = Number(lesson.course_id);
+                    const course = availableCourses.find((entry) => entry.id === parsedCourseId);
+
+                    setFormData({
+                      ...formData,
+                      lessonTitle: lesson.name,
+                      courseId: parsedCourseId || formData.courseId,
+                      courseTitle: course?.name || formData.courseTitle,
+                    });
+                  }}
+                  disabled={isLoadingCourses || isLoadingLessons || availableLessons.length === 0}
                   className="w-full px-4 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100"
                 >
                   <option value="">
-                    {!formData.courseId
-                      ? "Select a course first"
-                      : isLoadingLessons
+                    {isLoadingLessons
                       ? "Loading lessons..."
-                      : "Select a lesson"}
+                      : availableLessons.length === 0
+                      ? "No lessons found"
+                      : formData.courseId && lessonOptions.length === 0
+                      ? "No lessons for selected course"
+                      : formData.courseId
+                      ? "Select a lesson"
+                      : "Select a lesson (or choose a course first)"}
                   </option>
-                  {filteredLessons.map((lesson) => (
-                    <option key={lesson.id} value={lesson.name}>
+                  {lessonOptions.map((lesson) => (
+                    <option key={lesson.id} value={lesson.id}>
                       {lesson.name}
                     </option>
                   ))}

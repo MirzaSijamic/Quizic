@@ -2,31 +2,134 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router";
 import { motion } from "motion/react";
 import { ArrowLeft, Play, FileText, PenTool, ShieldAlert, ChevronRight, Plus, X, Users } from "lucide-react";
-import { MOCK_COURSES } from "../data";
+import { type Course, type CourseLevel } from "../data";
 import { ExerciseQuiz, type QuizExercise } from "../components/ExerciseQuiz";
-import { getQuizExercisesByCourse, type QuizExerciseData } from "../utils/storage";
+import {
+  fetchCoursesFromApi,
+  fetchLessonsFromApi,
+  fetchQuizzesFromApi,
+  getQuizExercisesByCourse,
+  type CourseOption,
+  type LessonOption,
+  type QuizExerciseData,
+  type QuizOption,
+} from "../utils/storage";
 import { isStoredUserAdmin } from "../utils/auth";
+
+type CourseDetailLocationState = {
+  isAdminView?: boolean;
+  courseData?: Course;
+};
+
+const normalizeCourseLevel = (difficulty?: string | null): CourseLevel => {
+  const normalized = (difficulty || "").trim().toLowerCase();
+
+  if (normalized === "beginner") {
+    return "Beginner";
+  }
+
+  if (normalized === "intermediate") {
+    return "Intermediate";
+  }
+
+  if (normalized === "advanced") {
+    return "Advanced";
+  }
+
+  return "Beginner";
+};
+
+const buildCourseFromApi = (
+  course: CourseOption,
+  lessons: LessonOption[],
+  quizzes: QuizOption[],
+): Course => {
+  const quizzesByLessonId = new Map<number, QuizOption[]>();
+
+  for (const quiz of quizzes) {
+    const lessonId = Number(quiz.lesson_id);
+    if (!Number.isInteger(lessonId)) {
+      continue;
+    }
+
+    const existing = quizzesByLessonId.get(lessonId);
+    if (existing) {
+      existing.push(quiz);
+      continue;
+    }
+
+    quizzesByLessonId.set(lessonId, [quiz]);
+  }
+
+  const courseLessons = lessons
+    .filter((lesson) => Number(lesson.course_id) === Number(course.id))
+    .sort((a, b) => a.id - b.id)
+    .map((lesson) => {
+      const lessonQuizzes = quizzesByLessonId.get(lesson.id) || [];
+
+      return {
+        title: lesson.name,
+        videos: lesson.video_link
+          ? [{ title: `${lesson.name} Video`, url: lesson.video_link }]
+          : [],
+        materials: lesson.material_link
+          ? [{ title: `${lesson.name} Material`, url: lesson.material_link }]
+          : [],
+        exercises: lessonQuizzes.map((quiz) => ({
+          title: quiz.title,
+          url: "#",
+          quiz: {
+            id: quiz.id,
+            title: quiz.title,
+            description: `Quiz for ${lesson.name}`,
+            questions: [],
+            passingScore: quiz.passing_score,
+            courseId: course.id,
+            courseTitle: course.name,
+          },
+        })),
+      };
+    });
+
+  return {
+    id: course.id,
+    title: course.name,
+    level: normalizeCourseLevel(course.difficulty),
+    status: "Unfinished",
+    lessons: courseLessons,
+  };
+};
 
 export function CourseDetail() {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const locationState = (location.state as CourseDetailLocationState | null) || null;
   const canAccessAdminView = isStoredUserAdmin();
 
   // Support inheriting Admin view state from previous page, but allow toggling here
   const [isAdminView, setIsAdminView] = useState(
-    canAccessAdminView && Boolean(location.state?.isAdminView),
+    canAccessAdminView && Boolean(locationState?.isAdminView),
   );
-  const [, setForceRender] = useState(0);
+  const [course, setCourse] = useState<Course | null>(locationState?.courseData || null);
+  const [courseLessonIds, setCourseLessonIds] = useState<number[]>([]);
+  const [isLoadingCourse, setIsLoadingCourse] = useState(true);
+  const [courseLoadError, setCourseLoadError] = useState<string | null>(null);
 
   const [showLessonModal, setShowLessonModal] = useState(false);
   const [newLessonTitle, setNewLessonTitle] = useState("");
+  const [isCreatingLesson, setIsCreatingLesson] = useState(false);
+  const [createLessonError, setCreateLessonError] = useState<string | null>(null);
 
   const [showResourceModal, setShowResourceModal] = useState(false);
   const [activeLessonIdx, setActiveLessonIdx] = useState<number | null>(null);
   const [resourceType, setResourceType] = useState<"videos" | "materials" | "exercises">("videos");
   const [resourceTitle, setResourceTitle] = useState("");
   const [resourceUrl, setResourceUrl] = useState("");
+  const [isEditingResource, setIsEditingResource] = useState(false);
+  const [editingResourceIdx, setEditingResourceIdx] = useState<number | null>(null);
+  const [isUpdatingResource, setIsUpdatingResource] = useState(false);
+  const [updateResourceError, setUpdateResourceError] = useState<string | null>(null);
 
   const [activeQuiz, setActiveQuiz] = useState<QuizExercise | null>(null);
   const [storageQuizzes, setStorageQuizzes] = useState<QuizExerciseData[]>([]);
@@ -43,14 +146,52 @@ export function CourseDetail() {
     ? extractedNumericCourseId
     : null;
 
-  const course = MOCK_COURSES.find((c) => {
-    if (resolvedCourseId !== null && c.id === resolvedCourseId) {
-      return true;
-    }
+  useEffect(() => {
+    const loadCourse = async () => {
+      if (resolvedCourseId === null) {
+        setCourse(null);
+        setCourseLoadError("Course not found");
+        setIsLoadingCourse(false);
+        return;
+      }
 
-    // Backward compatibility for stale links/state where IDs were previously string-like.
-    return String(c.id) === normalizedCourseIdParam;
-  });
+      setIsLoadingCourse(true);
+      setCourseLoadError(null);
+
+      try {
+        const [courses, lessons, quizzes] = await Promise.all([
+          fetchCoursesFromApi(),
+          fetchLessonsFromApi(),
+          fetchQuizzesFromApi(),
+        ]);
+
+        const matchedCourse = courses.find((entry) => Number(entry.id) === resolvedCourseId) || null;
+
+        if (!matchedCourse) {
+          setCourse(null);
+          setCourseLessonIds([]);
+          setCourseLoadError("Course not found");
+          return;
+        }
+
+        const matchingLessonIds = lessons
+          .filter((lesson) => Number(lesson.course_id) === Number(matchedCourse.id))
+          .sort((a, b) => a.id - b.id)
+          .map((lesson) => lesson.id);
+
+        setCourseLessonIds(matchingLessonIds);
+        setCourse(buildCourseFromApi(matchedCourse, lessons, quizzes));
+      } catch (error) {
+        setCourse(null);
+        setCourseLessonIds([]);
+        setCourseLoadError(error instanceof Error ? error.message : "Failed to load course data.");
+      } finally {
+        setIsLoadingCourse(false);
+      }
+    };
+
+    void loadCourse();
+  }, [resolvedCourseId]);
 
   // Load quizzes from storage for this course
   useEffect(() => {
@@ -196,11 +337,21 @@ export function CourseDetail() {
     }
   };
 
+  if (isLoadingCourse) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-4 text-neutral-500">
+        <h2 className="text-xl font-bold text-neutral-800 dark:text-neutral-200">Loading course...</h2>
+      </div>
+    );
+  }
+
   if (!course) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 text-neutral-500">
         <ShieldAlert className="w-12 h-12 text-pink-500" />
-        <h2 className="text-xl font-bold text-neutral-800 dark:text-neutral-200">Course not found</h2>
+        <h2 className="text-xl font-bold text-neutral-800 dark:text-neutral-200">
+          {courseLoadError || "Course not found"}
+        </h2>
         <button
           onClick={() => navigate("/lessons")}
           className="text-pink-600 hover:underline flex items-center gap-2"
@@ -211,35 +362,143 @@ export function CourseDetail() {
     );
   }
 
-  const handleAddLesson = (e: React.FormEvent) => {
+  const handleAddLesson = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newLessonTitle.trim()) return;
+    if (!newLessonTitle.trim() || !course) return;
 
-    course.lessons.push({
-      title: newLessonTitle,
-      videos: [],
-      materials: [],
-      exercises: []
-    });
+    const apiBase =
+      import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ??
+      `${window.location.protocol}//${window.location.hostname}:8000`;
 
-    setNewLessonTitle("");
-    setShowLessonModal(false);
-    setForceRender(p => p + 1);
+    setCreateLessonError(null);
+    setIsCreatingLesson(true);
+
+    try {
+      const response = await fetch(`${apiBase}/api/lessons/`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          course_id: course.id,
+          name: newLessonTitle.trim(),
+          video_link: null,
+          material_link: null,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || "Failed to create lesson.");
+      }
+
+      const createdLesson = (await response.json()) as LessonOption;
+
+      setCourse({
+        ...course,
+        lessons: [
+          ...course.lessons,
+          {
+            title: createdLesson.name,
+            videos: createdLesson.video_link
+              ? [{ title: `${createdLesson.name} Video`, url: createdLesson.video_link }]
+              : [],
+            materials: createdLesson.material_link
+              ? [{ title: `${createdLesson.name} Material`, url: createdLesson.material_link }]
+              : [],
+            exercises: [],
+          },
+        ],
+      });
+      setCourseLessonIds([...courseLessonIds, createdLesson.id]);
+
+      setNewLessonTitle("");
+      setShowLessonModal(false);
+    } catch (error) {
+      setCreateLessonError(error instanceof Error ? error.message : "Failed to create lesson.");
+    } finally {
+      setIsCreatingLesson(false);
+    }
   };
 
-  const handleAddResource = (e: React.FormEvent) => {
+  const handleAddResource = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!resourceTitle.trim() || activeLessonIdx === null) return;
+    if (!resourceTitle.trim() || activeLessonIdx === null || !course) return;
 
-    course.lessons[activeLessonIdx][resourceType].push({
+    setUpdateResourceError(null);
+    setIsUpdatingResource(true);
+
+    const resourceLink = resourceUrl.trim() || "#";
+    const selectedLessonId = courseLessonIds[activeLessonIdx];
+    const shouldReplaceExisting = isEditingResource && editingResourceIdx !== null;
+
+    if ((resourceType === "videos" || resourceType === "materials") && !Number.isInteger(selectedLessonId)) {
+      setUpdateResourceError("Selected lesson could not be resolved for backend update.");
+      setIsUpdatingResource(false);
+      return;
+    }
+
+    if (resourceType === "videos" || resourceType === "materials") {
+      const apiBase =
+        import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ??
+        `${window.location.protocol}//${window.location.hostname}:8000`;
+
+      const payload =
+        resourceType === "videos"
+          ? { video_link: resourceLink }
+          : { material_link: resourceLink };
+
+      try {
+        const response = await fetch(`${apiBase}/api/lessons/${selectedLessonId}`, {
+          method: "PUT",
+          credentials: "include",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.detail || "Failed to update lesson resource.");
+        }
+      } catch (error) {
+        setUpdateResourceError(error instanceof Error ? error.message : "Failed to update lesson resource.");
+        setIsUpdatingResource(false);
+        return;
+      }
+    }
+
+    const updatedLessons = [...course.lessons];
+    const resourceEntry = {
       title: resourceTitle,
-      url: resourceUrl || "#"
+      url: resourceLink,
+    };
+
+    const existingResources = [...updatedLessons[activeLessonIdx][resourceType]];
+    const nextResources = shouldReplaceExisting
+      ? existingResources.map((entry, idx) => (idx === editingResourceIdx ? resourceEntry : entry))
+      : [...existingResources, resourceEntry];
+
+    updatedLessons[activeLessonIdx] = {
+      ...updatedLessons[activeLessonIdx],
+      [resourceType]: nextResources,
+    };
+
+    setCourse({
+      ...course,
+      lessons: updatedLessons,
     });
 
     setResourceTitle("");
     setResourceUrl("");
+    setIsEditingResource(false);
+    setEditingResourceIdx(null);
     setShowResourceModal(false);
-    setForceRender(p => p + 1);
+    setIsUpdatingResource(false);
   };
 
   return (
@@ -306,6 +565,11 @@ export function CourseDetail() {
                     onClick={() => {
                       setActiveLessonIdx(idx);
                       setResourceType("videos");
+                      setResourceTitle("");
+                      setResourceUrl("");
+                      setIsEditingResource(false);
+                      setEditingResourceIdx(null);
+                      setUpdateResourceError(null);
                       setShowResourceModal(true);
                     }}
                     className="flex items-center gap-1.5 text-sm font-medium text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-900/20 px-3 py-1.5 rounded-lg hover:bg-pink-100 dark:hover:bg-pink-900/40 transition-colors"
@@ -324,31 +588,38 @@ export function CourseDetail() {
                   {/* Videos */}
                   {(lesson.videos.length > 0 || isAdminView) && (
                     <div className="space-y-3 bg-neutral-50 dark:bg-neutral-950 p-5 rounded-2xl border border-neutral-100 dark:border-neutral-800">
-                      <div className="flex items-center justify-between mb-4">
+                      <div className="mb-4">
                         <h3 className="font-semibold text-neutral-800 dark:text-neutral-200 flex items-center gap-2">
                           <Play className="w-4 h-4 text-blue-500" />
                           Videos
                         </h3>
-                        {isAdminView && (
-                          <button
-                            onClick={() => {
-                              setActiveLessonIdx(idx);
-                              setResourceType("videos");
-                              setShowResourceModal(true);
-                            }}
-                            className="p-1 rounded-md text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
-                        )}
                       </div>
                       <ul className="space-y-2">
                         {lesson.videos.map((link, lIdx) => (
                           <li key={lIdx}>
-                            <a href={link.url} className="flex items-start gap-2 p-2 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 text-neutral-700 dark:text-neutral-300 hover:text-blue-700 dark:hover:text-blue-300 transition-colors group">
-                              <ChevronRight className="w-4 h-4 mt-0.5 opacity-50 group-hover:opacity-100 shrink-0 text-blue-500" />
-                              <span className="text-sm font-medium leading-snug">{link.title}</span>
-                            </a>
+                            {isAdminView ? (
+                              <button
+                                onClick={() => {
+                                  setActiveLessonIdx(idx);
+                                  setResourceType("videos");
+                                  setResourceTitle(link.title);
+                                  setResourceUrl(link.url);
+                                  setIsEditingResource(true);
+                                  setEditingResourceIdx(lIdx);
+                                  setUpdateResourceError(null);
+                                  setShowResourceModal(true);
+                                }}
+                                className="w-full text-left flex items-start gap-2 p-2 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 text-neutral-700 dark:text-neutral-300 hover:text-blue-700 dark:hover:text-blue-300 transition-colors group"
+                              >
+                                <ChevronRight className="w-4 h-4 mt-0.5 opacity-50 group-hover:opacity-100 shrink-0 text-blue-500" />
+                                <span className="text-sm font-medium leading-snug">{link.title}</span>
+                              </button>
+                            ) : (
+                              <a href={link.url} className="flex items-start gap-2 p-2 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 text-neutral-700 dark:text-neutral-300 hover:text-blue-700 dark:hover:text-blue-300 transition-colors group">
+                                <ChevronRight className="w-4 h-4 mt-0.5 opacity-50 group-hover:opacity-100 shrink-0 text-blue-500" />
+                                <span className="text-sm font-medium leading-snug">{link.title}</span>
+                              </a>
+                            )}
                           </li>
                         ))}
                         {lesson.videos.length === 0 && isAdminView && (
@@ -361,31 +632,38 @@ export function CourseDetail() {
                   {/* Materials */}
                   {(lesson.materials.length > 0 || isAdminView) && (
                     <div className="space-y-3 bg-neutral-50 dark:bg-neutral-950 p-5 rounded-2xl border border-neutral-100 dark:border-neutral-800">
-                      <div className="flex items-center justify-between mb-4">
+                      <div className="mb-4">
                         <h3 className="font-semibold text-neutral-800 dark:text-neutral-200 flex items-center gap-2">
                           <FileText className="w-4 h-4 text-purple-500" />
                           Materials
                         </h3>
-                        {isAdminView && (
-                          <button
-                            onClick={() => {
-                              setActiveLessonIdx(idx);
-                              setResourceType("materials");
-                              setShowResourceModal(true);
-                            }}
-                            className="p-1 rounded-md text-purple-500 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
-                        )}
                       </div>
                       <ul className="space-y-2">
                         {lesson.materials.map((link, lIdx) => (
                           <li key={lIdx}>
-                            <a href={link.url} className="flex items-start gap-2 p-2 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 text-neutral-700 dark:text-neutral-300 hover:text-purple-700 dark:hover:text-purple-300 transition-colors group">
-                              <ChevronRight className="w-4 h-4 mt-0.5 opacity-50 group-hover:opacity-100 shrink-0 text-purple-500" />
-                              <span className="text-sm font-medium leading-snug">{link.title}</span>
-                            </a>
+                            {isAdminView ? (
+                              <button
+                                onClick={() => {
+                                  setActiveLessonIdx(idx);
+                                  setResourceType("materials");
+                                  setResourceTitle(link.title);
+                                  setResourceUrl(link.url);
+                                  setIsEditingResource(true);
+                                  setEditingResourceIdx(lIdx);
+                                  setUpdateResourceError(null);
+                                  setShowResourceModal(true);
+                                }}
+                                className="w-full text-left flex items-start gap-2 p-2 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 text-neutral-700 dark:text-neutral-300 hover:text-purple-700 dark:hover:text-purple-300 transition-colors group"
+                              >
+                                <ChevronRight className="w-4 h-4 mt-0.5 opacity-50 group-hover:opacity-100 shrink-0 text-purple-500" />
+                                <span className="text-sm font-medium leading-snug">{link.title}</span>
+                              </button>
+                            ) : (
+                              <a href={link.url} className="flex items-start gap-2 p-2 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 text-neutral-700 dark:text-neutral-300 hover:text-purple-700 dark:hover:text-purple-300 transition-colors group">
+                                <ChevronRight className="w-4 h-4 mt-0.5 opacity-50 group-hover:opacity-100 shrink-0 text-purple-500" />
+                                <span className="text-sm font-medium leading-snug">{link.title}</span>
+                              </a>
+                            )}
                           </li>
                         ))}
                         {lesson.materials.length === 0 && isAdminView && (
@@ -398,23 +676,11 @@ export function CourseDetail() {
                   {/* Exercises */}
                   {(lesson.exercises.length > 0 || hasStorageQuizzes || isAdminView) && (
                     <div className="space-y-3 bg-neutral-50 dark:bg-neutral-950 p-5 rounded-2xl border border-neutral-100 dark:border-neutral-800">
-                      <div className="flex items-center justify-between mb-4">
+                      <div className="mb-4">
                         <h3 className="font-semibold text-neutral-800 dark:text-neutral-200 flex items-center gap-2">
                           <PenTool className="w-4 h-4 text-pink-500" />
                           Exercises
                         </h3>
-                        {isAdminView && (
-                          <button
-                            onClick={() => {
-                              setActiveLessonIdx(idx);
-                              setResourceType("exercises");
-                              setShowResourceModal(true);
-                            }}
-                            className="p-1 rounded-md text-pink-500 hover:bg-pink-100 dark:hover:bg-pink-900/30 transition-colors"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
-                        )}
                       </div>
                       <ul className="space-y-2">
                         {/* Hardcoded exercises from data.ts */}
@@ -526,9 +792,14 @@ export function CourseDetail() {
                 />
               </div>
 
+              {createLessonError && (
+                <p className="text-xs text-red-600 dark:text-red-400">{createLessonError}</p>
+              )}
+
               <div className="pt-4 flex justify-end gap-3">
                 <button
                   type="button"
+                  disabled={isCreatingLesson}
                   onClick={() => setShowLessonModal(false)}
                   className="px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800 rounded-xl transition-colors"
                 >
@@ -536,9 +807,10 @@ export function CourseDetail() {
                 </button>
                 <button
                   type="submit"
+                  disabled={isCreatingLesson}
                   className="px-4 py-2 text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 rounded-xl transition-colors shadow-sm"
                 >
-                  Create Lesson
+                  {isCreatingLesson ? "Creating..." : "Create Lesson"}
                 </button>
               </div>
             </form>
@@ -569,6 +841,7 @@ export function CourseDetail() {
                 <select
                   value={resourceType}
                   onChange={(e) => setResourceType(e.target.value as any)}
+                  disabled={isEditingResource}
                   className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 appearance-none capitalize"
                 >
                   <option value="videos">Video</option>
@@ -601,19 +874,32 @@ export function CourseDetail() {
                 />
               </div>
 
+              {updateResourceError && (
+                <p className="text-xs text-red-600 dark:text-red-400">{updateResourceError}</p>
+              )}
+
               <div className="pt-4 flex justify-end gap-3">
                 <button
                   type="button"
-                  onClick={() => setShowResourceModal(false)}
+                  disabled={isUpdatingResource}
+                  onClick={() => {
+                    setShowResourceModal(false);
+                    setIsEditingResource(false);
+                    setEditingResourceIdx(null);
+                    setResourceTitle("");
+                    setResourceUrl("");
+                    setUpdateResourceError(null);
+                  }}
                   className="px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800 rounded-xl transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
+                  disabled={isUpdatingResource}
                   className="px-4 py-2 text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 rounded-xl transition-colors shadow-sm"
                 >
-                  Add Resource
+                  {isUpdatingResource ? "Saving..." : isEditingResource ? "Update Resource" : "Add Resource"}
                 </button>
               </div>
             </form>

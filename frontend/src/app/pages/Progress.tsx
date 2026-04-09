@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { Award, Calendar, CheckCircle2, CircleDashed, ArrowLeft, Users } from "lucide-react";
-import { USER_INFO, MOCK_COURSES } from "../data";
+import { USER_INFO } from "../data";
 import { isStoredUserAdmin } from "../utils/auth";
+
+import * as test from "../utils/test";
 
 type ProfileCourseRelation = {
   id: number;
@@ -23,6 +25,31 @@ type ActiveStudentView = {
   role: string;
   startDate: string;
   graduationDate: string;
+};
+
+type CourseCompletionStatus = {
+  course_id: number;
+  course_name: string;
+  total_quizzes: number;
+  passed_quizzes: number;
+  completed: boolean;
+};
+
+type CourseInfo = {
+    id: number;
+    name: string;
+    difficulty: string;
+}
+
+type AuthUser = {
+    authenticated: boolean;
+    user: {
+    profile_id: number;
+    role: string;
+    id: string;
+    email: string;
+    display_name: string;
+    };
 };
 
 function getApiBase() {
@@ -102,6 +129,86 @@ export function Progress() {
   const loggedProfileId = Number(rawProfileId);
   const selectedDbStudent = dbStudents.find((profile) => profile.id === selectedStudentId) ?? null;
 
+  const [courses, setCourses] = useState<CourseCompletionStatus[]>([]);
+  const [coursesError, setCoursesError] = useState<string | null>(null);
+  const [isLoadingCourses, setIsLoadingCourses] = useState(false);
+  const [corusesInfo, setCoursesInfo] = useState<CourseInfo | null>(null);
+
+  const [passedCourses, setPassedCourses] = useState<CourseCompletionStatus[]>([]);
+  const [unfinishedCoursess, setUnfinishedCourses] = useState<CourseCompletionStatus[]>([]);
+
+  const raw = localStorage.getItem("auth_user");
+  const jason = JSON.parse(raw ?? "{}") as AuthUser;
+  const profileID = jason["user"]["profile_id"];
+/*
+  const handleTestClick = async (profileID: number) => {
+    try {
+      setIsLoadingCourses(true);
+      setCoursesError(null);
+
+      const data = await test.fetchCourses(profileID); // await returned courses
+
+      const passedCourses = data.filter(course => course.completed === true);
+      const unfinishedCourses = data.filter(course => course.completed !== true);
+      console.log("Passed courses:", passedCourses);
+      console.log("Unfinished courses:", unfinishedCourses);
+
+      setPassedCourses(passedCourses); // store passed courses in React state
+      setUnfinishedCourses(unfinishedCourses); // store unfinished courses in React state
+
+      setCourses(data); // store in React state
+
+      // optional persistence
+      //localStorage.setItem("course_completion_status", JSON.stringify(data));
+      //console.log("Fetched courses:", data);
+    } catch (err) {
+      setCoursesError(err instanceof Error ? err.message : "Failed to load courses");
+    } finally {
+      setIsLoadingCourses(false);
+    }
+  };
+*/
+  const loadCompletionStatus = async (activeProfileId: number) => {
+      try {
+        setIsLoadingCourses(true);
+        setCoursesError(null);
+
+        const data = await test.fetchCourses(activeProfileId);
+        setCourses(data);
+        setPassedCourses(data.filter((c) => c.completed === true));
+        setUnfinishedCourses(data.filter((c) => c.completed !== true));
+      } catch (err) {
+        setCoursesError(err instanceof Error ? err.message : "Failed to load completion status");
+        setCourses([]);
+        setPassedCourses([]);
+        setUnfinishedCourses([]);
+      } finally {
+        setIsLoadingCourses(false);
+      }
+    };
+
+    useEffect(() => {
+      const activeProfileId =
+        isAdminView && selectedStudentId ? selectedStudentId : loggedProfileId;
+
+      if (!Number.isFinite(activeProfileId) || activeProfileId <= 0) {
+        setCourses([]);
+        setPassedCourses([]);
+        setUnfinishedCourses([]);
+        return;
+      }
+
+      void loadCompletionStatus(activeProfileId);
+    }, [isAdminView, selectedStudentId, loggedProfileId]);
+
+    /*
+  useEffect(() => {
+    if (!Number.isFinite(profileID) || profileID <= 0) return;
+    handleTestClick(profileID);
+  }, [profileID]);
+*/
+  
+
   useEffect(() => {
     if (!isAdminView) {
       return;
@@ -154,13 +261,6 @@ export function Progress() {
     });
   }, [isAdminView, loggedProfileId, selectedStudentId]);
 
-  const finishedProfileCourseIds = profileCourses
-    .filter((relation) => relation.completed === true)
-    .map((relation) => relation.course_id);
-
-  const unfinishedProfileCourseIds = profileCourses
-    .filter((relation) => relation.completed !== true)
-    .map((relation) => relation.course_id);
 
   const activeStudent: ActiveStudentView = isAdminView && selectedDbStudent
     ? {
@@ -171,22 +271,13 @@ export function Progress() {
       }
     : USER_INFO;
 
-  const useBackendCounts = isAdminView && selectedStudentId ? true : profileCourses.length > 0;
-
-  const finishedCourses = useBackendCounts
-    ? MOCK_COURSES.filter((course) => finishedProfileCourseIds.includes(course.id))
-    : MOCK_COURSES.filter((course) => course.status === "Finished");
-
-  const unfinishedCourses = useBackendCounts
-    ? MOCK_COURSES.filter((course) => unfinishedProfileCourseIds.includes(course.id))
-    : MOCK_COURSES.filter((course) => course.status === "Unfinished");
-
   const progressBarKey = isAdminView ? selectedStudentId ?? "admin" : "user";
 
-  const finishedCount = useBackendCounts ? finishedProfileCourseIds.length : finishedCourses.length;
-  const unfinishedCount = useBackendCounts ? unfinishedProfileCourseIds.length : unfinishedCourses.length;
-  const totalCourses = useBackendCounts ? finishedCount + unfinishedCount : MOCK_COURSES.length;
-  const progressPercentage = totalCourses > 0 ? Math.round((finishedCount / totalCourses) * 100) : 0;
+  //console.log("Length of passed courses:", passedCourses.length);
+  //console.log("Length of unfinished courses:", unfinishedCoursess.length);
+
+  const totalCourses = passedCourses.length + unfinishedCoursess.length;
+  const progressPercentage = totalCourses > 0 ? Math.round((passedCourses.length / totalCourses) * 100) : 0;
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-12">
@@ -306,7 +397,7 @@ export function Progress() {
                   <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200">Overall Progress</h3>
                   <p className="text-sm text-neutral-500 mt-1">
                     {isAdminView ? `${activeStudent?.name.split(' ')[0]} has ` : "You have "} 
-                    completed {finishedCount} out of {totalCourses} courses
+                    completed {passedCourses.length} out of {totalCourses} courses
                   </p>
                 </div>
                 <span className="text-4xl font-black bg-gradient-to-r from-pink-600 to-orange-500 bg-clip-text text-transparent">
@@ -333,21 +424,21 @@ export function Progress() {
                   <CheckCircle2 className="w-5 h-5 text-emerald-500" /> Finished Courses
                 </h3>
                 <ul className="space-y-3">
-                  {finishedCourses.map((course) => (
+                  {passedCourses.map((course) => (
                     <motion.li
-                      key={course.id}
+                      key={course.course_name}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       className="flex items-start gap-3 bg-emerald-50/50 dark:bg-emerald-500/5 border border-emerald-100 dark:border-emerald-500/20 p-4 rounded-2xl"
                     >
                       <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
                       <div>
-                        <h4 className="font-medium text-emerald-900 dark:text-emerald-300 text-sm leading-snug mb-1">{course.title}</h4>
-                        <span className="text-xs text-emerald-700/70 dark:text-emerald-400/70 uppercase tracking-wider font-semibold">{course.level}</span>
+                        <h4 className="font-medium text-emerald-900 dark:text-emerald-300 text-sm leading-snug mb-1">{course.course_name}</h4>
+                        <span className="text-xs text-emerald-700/70 dark:text-emerald-400/70 uppercase tracking-wider font-semibold">{course.completed}</span>
                       </div>
                     </motion.li>
                   ))}
-                  {finishedCourses.length === 0 && (
+                  {passedCourses.length === 0 && (
                     <p className="text-sm text-neutral-500 italic p-4">No finished courses yet.</p>
                   )}
                 </ul>
@@ -359,21 +450,21 @@ export function Progress() {
                   <CircleDashed className="w-5 h-5 text-orange-500" /> Unfinished Courses
                 </h3>
                 <ul className="space-y-3">
-                  {unfinishedCourses.map((course) => (
+                  {unfinishedCoursess.map((course) => (
                     <motion.li
-                      key={course.id}
+                      key={course.course_name}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       className="flex items-start gap-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-4 rounded-2xl"
                     >
                       <CircleDashed className="w-5 h-5 text-neutral-400 dark:text-neutral-600 shrink-0 mt-0.5" />
                       <div>
-                        <h4 className="font-medium text-neutral-700 dark:text-neutral-300 text-sm leading-snug mb-1">{course.title}</h4>
-                        <span className="text-xs text-neutral-500 dark:text-neutral-500 uppercase tracking-wider font-semibold">{course.level}</span>
+                        <h4 className="font-medium text-neutral-700 dark:text-neutral-300 text-sm leading-snug mb-1">{course.course_name}</h4>
+                        <span className="text-xs text-neutral-500 dark:text-neutral-500 uppercase tracking-wider font-semibold">{course.completed}</span>
                       </div>
                     </motion.li>
                   ))}
-                  {unfinishedCourses.length === 0 && (
+                  {unfinishedCoursess.length === 0 && (
                     <p className="text-sm text-neutral-500 italic p-4">All courses completed!</p>
                   )}
                 </ul>
