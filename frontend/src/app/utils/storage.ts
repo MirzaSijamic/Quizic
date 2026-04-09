@@ -107,6 +107,7 @@ export type CourseOption = {
   id: number;
   name: string;
   difficulty?: string | null;
+  completed?: boolean; // Add this field to represent completion status
 };
 
 export type QuizOption = {
@@ -272,12 +273,34 @@ export async function fetchCoursesFromApi(): Promise<CourseOption[]> {
     credentials: "include",
   });
 
+  const responseJson = await coursesRes.json() as CourseOption[];
+  //responseJson[0].completed = true; // Set the first course as completed for testing
+  //console.log("Courses response:", responseJson);
+
+
+
+  const courseCompletedRes = await fetch(`${apiBase}/api/profile-courses/profile/1/completion-status`, {
+    credentials: "include",
+  });
+
+  //console.log("Course completion status response:", await courseCompletedRes.json());
+
   if (!coursesRes.ok) {
     const err = await coursesRes.json().catch(() => ({}));
     throw new Error(err.detail || "Failed to load courses.");
   }
 
-  return (await coursesRes.json()) as CourseOption[];
+  const courseCompletedResJSON = await courseCompletedRes.json() as CourseOption[];
+  //console.log("Course completion status parsed:", courseCompletedResJSON[0].completed);
+
+  const combinejsn = responseJson.map((course, index) => {
+    course.completed = courseCompletedResJSON[index].completed;
+  });
+
+  //console.log("Combined course data:", responseJson);
+
+
+  return responseJson;
 }
 
 export async function fetchQuizzesFromApi(): Promise<QuizOption[]> {
