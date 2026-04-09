@@ -100,6 +100,67 @@ const buildCourseFromApi = (
   };
 };
 
+type VideoEmbedConfig =
+  | { kind: "youtube"; src: string }
+  | { kind: "vimeo"; src: string }
+  | { kind: "html5"; sourceType: "video/mp4" | "video/webm" | "video/ogg" }
+  | { kind: "unsupported" };
+
+const resolveVideoEmbedConfig = (rawUrl: string): VideoEmbedConfig => {
+  try {
+    const parsed = new URL(rawUrl);
+    const host = parsed.hostname.toLowerCase();
+    const path = parsed.pathname;
+
+    if (host === "youtu.be") {
+      const id = path.replace(/^\//, "").split("/")[0];
+      if (id) {
+        return { kind: "youtube", src: `https://www.youtube.com/embed/${id}` };
+      }
+    }
+
+    if (host.includes("youtube.com") || host.includes("youtube-nocookie.com")) {
+      const watchId = parsed.searchParams.get("v");
+      if (watchId) {
+        return { kind: "youtube", src: `https://www.youtube.com/embed/${watchId}` };
+      }
+
+      const segments = path.split("/").filter(Boolean);
+      const embedIndex = segments.findIndex((segment) => segment === "embed" || segment === "shorts");
+      if (embedIndex >= 0 && segments[embedIndex + 1]) {
+        return { kind: "youtube", src: `https://www.youtube.com/embed/${segments[embedIndex + 1]}` };
+      }
+    }
+
+    if (host.includes("vimeo.com")) {
+      const segments = path.split("/").filter(Boolean);
+      const videoIdx = segments.findIndex((segment) => segment === "video");
+      const id = videoIdx >= 0 ? segments[videoIdx + 1] : segments[segments.length - 1];
+
+      if (id && /^\d+$/.test(id)) {
+        return { kind: "vimeo", src: `https://player.vimeo.com/video/${id}` };
+      }
+    }
+
+    if (/\.(mp4|webm|ogg)(\?.*)?$/i.test(path)) {
+      const extension = path.split(".").pop()?.toLowerCase();
+      if (extension === "webm") {
+        return { kind: "html5", sourceType: "video/webm" };
+      }
+
+      if (extension === "ogg") {
+        return { kind: "html5", sourceType: "video/ogg" };
+      }
+
+      return { kind: "html5", sourceType: "video/mp4" };
+    }
+  } catch {
+    return { kind: "unsupported" };
+  }
+
+  return { kind: "unsupported" };
+};
+
 export function CourseDetail() {
   const { courseId } = useParams();
   const navigate = useNavigate();
@@ -597,29 +658,62 @@ export function CourseDetail() {
                       <ul className="space-y-2">
                         {lesson.videos.map((link, lIdx) => (
                           <li key={lIdx}>
-                            {isAdminView ? (
-                              <button
-                                onClick={() => {
-                                  setActiveLessonIdx(idx);
-                                  setResourceType("videos");
-                                  setResourceTitle(link.title);
-                                  setResourceUrl(link.url);
-                                  setIsEditingResource(true);
-                                  setEditingResourceIdx(lIdx);
-                                  setUpdateResourceError(null);
-                                  setShowResourceModal(true);
-                                }}
-                                className="w-full text-left flex items-start gap-2 p-2 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 text-neutral-700 dark:text-neutral-300 hover:text-blue-700 dark:hover:text-blue-300 transition-colors group"
-                              >
-                                <ChevronRight className="w-4 h-4 mt-0.5 opacity-50 group-hover:opacity-100 shrink-0 text-blue-500" />
-                                <span className="text-sm font-medium leading-snug">{link.title}</span>
-                              </button>
-                            ) : (
-                              <a href={link.url} className="flex items-start gap-2 p-2 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 text-neutral-700 dark:text-neutral-300 hover:text-blue-700 dark:hover:text-blue-300 transition-colors group">
-                                <ChevronRight className="w-4 h-4 mt-0.5 opacity-50 group-hover:opacity-100 shrink-0 text-blue-500" />
-                                <span className="text-sm font-medium leading-snug">{link.title}</span>
-                              </a>
-                            )}
+                            {(() => {
+                              const embedConfig = resolveVideoEmbedConfig(link.url);
+
+                              return (
+                                <div className="p-2 rounded-xl border border-blue-100 dark:border-blue-900/40 bg-white dark:bg-neutral-900/60 space-y-2">
+                                  <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                                    <ChevronRight className="w-4 h-4 shrink-0 text-blue-500" />
+                                    <span className="text-sm font-medium leading-snug">{link.title}</span>
+                                  </div>
+
+                                  {embedConfig.kind === "youtube" || embedConfig.kind === "vimeo" ? (
+                                    <div className="w-full aspect-video overflow-hidden rounded-lg bg-black">
+                                      <iframe
+                                        src={embedConfig.src}
+                                        title={link.title}
+                                        className="w-full h-full"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                        referrerPolicy="strict-origin-when-cross-origin"
+                                        allowFullScreen
+                                      />
+                                    </div>
+                                  ) : embedConfig.kind === "html5" ? (
+                                    <video controls className="w-full aspect-video rounded-lg bg-black object-contain">
+                                      <source src={link.url} type={embedConfig.sourceType} />
+                                    </video>
+                                  ) : (
+                                    <a
+                                      href={link.url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                                    >
+                                      Open video link
+                                    </a>
+                                  )}
+
+                                  {isAdminView && (
+                                    <button
+                                      onClick={() => {
+                                        setActiveLessonIdx(idx);
+                                        setResourceType("videos");
+                                        setResourceTitle(link.title);
+                                        setResourceUrl(link.url);
+                                        setIsEditingResource(true);
+                                        setEditingResourceIdx(lIdx);
+                                        setUpdateResourceError(null);
+                                        setShowResourceModal(true);
+                                      }}
+                                      className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                                    >
+                                      Edit video link
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </li>
                         ))}
                         {lesson.videos.length === 0 && isAdminView && (
