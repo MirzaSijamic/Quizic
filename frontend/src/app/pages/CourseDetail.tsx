@@ -192,6 +192,12 @@ export function CourseDetail() {
   const [isUpdatingResource, setIsUpdatingResource] = useState(false);
   const [updateResourceError, setUpdateResourceError] = useState<string | null>(null);
 
+  const [showCourseEditModal, setShowCourseEditModal] = useState(false);
+  const [editCourseTitle, setEditCourseTitle] = useState("");
+  const [editCourseLevel, setEditCourseLevel] = useState<CourseLevel>("Beginner");
+  const [isUpdatingCourse, setIsUpdatingCourse] = useState(false);
+  const [updateCourseError, setUpdateCourseErrror] = useState<string | null>(null);
+
   const [activeQuiz, setActiveQuiz] = useState<QuizExercise | null>(null);
   const [storageQuizzes, setStorageQuizzes] = useState<QuizExerciseData[]>([]);
   const [isLoadingQuiz, setIsLoadingQuiz] = useState(false);
@@ -562,6 +568,57 @@ export function CourseDetail() {
     setIsUpdatingResource(false);
   };
 
+  const openCourseEditModal = () => {
+    if (!course) return;
+    setEditCourseTitle(course.title);
+    setEditCourseLevel(course.level);
+    setUpdateCourseErrror(null);
+    setShowCourseEditModal(true);
+  };
+
+  const handleUpdateCourse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if(!course || !editCourseTitle.trim()) return;
+
+    const apiBase = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ??
+      window.location.protocol + "//" +
+      window.location.hostname + ":8000";
+
+      setIsUpdatingCourse(true);
+      setUpdateCourseErrror(null);
+
+      try{
+        const response = await fetch(apiBase + "/api/courses/" + String(course.id), {
+          method: "PUT",
+          credentials: "include",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: editCourseTitle.trim(),
+            difficulty: editCourseLevel,
+          }),
+        });
+
+        if(!response.ok){
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.detail || "Failed to update course.");
+        }
+
+        setCourse({
+          ...course,
+          title: editCourseTitle.trim(),
+          level: editCourseLevel,
+        });
+        setShowCourseEditModal(false);
+      }catch (error){
+        setUpdateCourseErrror(error instanceof Error ? error.message: "Failed to update course.");
+      }finally{
+        setIsUpdatingCourse(false);
+      }
+  };
+
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-12">
       <div className="flex items-center justify-between">
@@ -600,9 +657,26 @@ export function CourseDetail() {
             {course.status}
           </span>
         </div>
-        <h1 className="text-3xl sm:text-4xl font-bold text-neutral-900 dark:text-neutral-100 leading-tight">
-          {course.title}
-        </h1>
+
+          {isAdminView ? (
+          <button
+                    onClick={() => {
+                      openCourseEditModal();
+                    }}
+                    className="flex items-center gap-1.5 text-sm font-medium text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-900/20 px-3 py-1.5 rounded-lg hover:bg-pink-100 dark:hover:bg-pink-900/40 transition-colors"
+                  >
+                    
+                    <h1 className="text-3xl sm:text-4xl font-bold text-neutral-900 dark:text-neutral-100 leading-tight">
+                      {course.title}
+                    </h1>
+
+                  </button>
+        ):
+          <h1 className="text-3xl sm:text-4xl font-bold text-neutral-900 dark:text-neutral-100 leading-tight">
+            {course.title}
+          </h1>
+        }
+
         <p className="text-neutral-500 max-w-2xl text-lg">
           Explore the lessons within this course to build your skills and complete the required materials.
         </p>
@@ -665,7 +739,30 @@ export function CourseDetail() {
                                 <div className="p-2 rounded-xl border border-blue-100 dark:border-blue-900/40 bg-white dark:bg-neutral-900/60 space-y-2">
                                   <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
                                     <ChevronRight className="w-4 h-4 shrink-0 text-blue-500" />
-                                    <span className="text-sm font-medium leading-snug">{link.title}</span>
+
+                                    {isAdminView && (
+                                    <button
+                                      onClick={() => {
+                                        setActiveLessonIdx(idx);
+                                        setResourceType("videos");
+                                        setResourceTitle(link.title);
+                                        setResourceUrl(link.url);
+                                        setIsEditingResource(true);
+                                        setEditingResourceIdx(lIdx);
+                                        setUpdateResourceError(null);
+                                        setShowResourceModal(true);
+                                      }}
+                                      className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                                    >
+                                      <span className="text-sm font-medium leading-snug">{link.title}</span>
+                                    </button>
+                                  )}
+
+
+                                    {!isAdminView && (
+                                      <span className="text-sm font-medium leading-snug">{link.title}</span>
+                                    )}
+                                    
                                   </div>
 
                                   {embedConfig.kind === "youtube" || embedConfig.kind === "vimeo" ? (
@@ -690,27 +787,11 @@ export function CourseDetail() {
                                       rel="noreferrer"
                                       className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                                     >
-                                      Open video link
+                                      Open video link <a> </a>
                                     </a>
                                   )}
 
-                                  {isAdminView && (
-                                    <button
-                                      onClick={() => {
-                                        setActiveLessonIdx(idx);
-                                        setResourceType("videos");
-                                        setResourceTitle(link.title);
-                                        setResourceUrl(link.url);
-                                        setIsEditingResource(true);
-                                        setEditingResourceIdx(lIdx);
-                                        setUpdateResourceError(null);
-                                        setShowResourceModal(true);
-                                      }}
-                                      className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                                    >
-                                      Edit video link
-                                    </button>
-                                  )}
+                                  
                                 </div>
                               );
                             })()}
@@ -856,6 +937,74 @@ export function CourseDetail() {
           </button>
         )}
       </div>
+
+      {/* Edit Course Modal */}
+      {showCourseEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white dark:bg-neutral-900 rounded-3xl p-6 sm:p-8 w-full max-w-md shadow-2xl border border-neutral-200 dark:border-neutral-800"
+          >
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-neutral-900 dark:text-neutral-100">Edit Course</h3>
+              <button onClick={() => setShowCourseEditModal(false)} className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleUpdateCourse} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">Course Title</label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  value={editCourseTitle}
+                  onChange={(e) => setEditCourseTitle(e.target.value)}
+                  className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  placeholder="e.g. Advanced Analytics"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">Level</label>
+                <select
+                  value={editCourseLevel}
+                  onChange={(e) => setEditCourseLevel(e.target.value as CourseLevel)}
+                  className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 appearance-none"
+                >
+                  <option value="Beginner">Beginner</option>
+                  <option value="Intermediate">Intermediate</option>
+                  <option value="Advanced">Advanced</option>
+                </select>
+              </div>
+
+              {updateCourseError && (
+                <p className="text-xs text-red-600 dark:text-red-400">{updateCourseError}</p>
+              )}
+
+              <div className="pt-4 flex justify-end gap-3">
+                <button
+                  type="button"
+                  disabled={isUpdatingCourse}
+                  onClick={() => setShowCourseEditModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800 rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdatingCourse}
+                  className="px-4 py-2 text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 rounded-xl transition-colors shadow-sm"
+                >
+                  {isUpdatingCourse ? "Updating..." : "Update Course"}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
 
       {/* Add Lesson Modal */}
       {showLessonModal && (
