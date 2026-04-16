@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router";
-import { motion } from "motion/react";
+import { color, motion } from "motion/react";
 import { ArrowLeft, Play, FileText, PenTool, ShieldAlert, ChevronRight, Plus, X, Users } from "lucide-react";
 import { type Course, type CourseLevel } from "../data";
 import { ExerciseQuiz, type QuizExercise } from "../components/ExerciseQuiz";
@@ -95,7 +95,7 @@ const buildCourseFromApi = (
     id: course.id,
     title: course.name,
     level: normalizeCourseLevel(course.difficulty),
-    status: "Unfinished",
+    //status: "Unfinished",
     lessons: courseLessons,
   };
 };
@@ -192,11 +192,15 @@ export function CourseDetail() {
   const [isUpdatingResource, setIsUpdatingResource] = useState(false);
   const [updateResourceError, setUpdateResourceError] = useState<string | null>(null);
 
+
+  /**
+   * Course edit state is managed separately from lesson/resource creation since it has different form fields and API interactions, but could be expanded in the future to include more course-level properties if needed.
+   */
   const [showCourseEditModal, setShowCourseEditModal] = useState(false);
   const [editCourseTitle, setEditCourseTitle] = useState("");
   const [editCourseLevel, setEditCourseLevel] = useState<CourseLevel>("Beginner");
   const [isUpdatingCourse, setIsUpdatingCourse] = useState(false);
-  const [updateCourseError, setUpdateCourseErrror] = useState<string | null>(null);
+  const [updateCourseError, setUpdateCourseError] = useState<string | null>(null);
 
   const [activeQuiz, setActiveQuiz] = useState<QuizExercise | null>(null);
   const [storageQuizzes, setStorageQuizzes] = useState<QuizExerciseData[]>([]);
@@ -572,7 +576,7 @@ export function CourseDetail() {
     if (!course) return;
     setEditCourseTitle(course.title);
     setEditCourseLevel(course.level);
-    setUpdateCourseErrror(null);
+    setUpdateCourseError(null);
     setShowCourseEditModal(true);
   };
 
@@ -585,7 +589,7 @@ export function CourseDetail() {
       window.location.hostname + ":8000";
 
       setIsUpdatingCourse(true);
-      setUpdateCourseErrror(null);
+      setUpdateCourseError(null);
 
       try{
         const response = await fetch(apiBase + "/api/courses/" + String(course.id), {
@@ -613,7 +617,7 @@ export function CourseDetail() {
         });
         setShowCourseEditModal(false);
       }catch (error){
-        setUpdateCourseErrror(error instanceof Error ? error.message: "Failed to update course.");
+        setUpdateCourseError(error instanceof Error ? error.message: "Failed to update course.");
       }finally{
         setIsUpdatingCourse(false);
       }
@@ -648,14 +652,18 @@ export function CourseDetail() {
         </div>
       </div>
 
+
+
       <div className="bg-white dark:bg-neutral-900 rounded-3xl p-8 shadow-sm border border-neutral-200 dark:border-neutral-800 space-y-4">
         <div className="flex flex-wrap gap-3 items-center text-xs font-semibold uppercase tracking-wider mb-2">
           <span className="bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400 px-3 py-1 rounded-full">
             {course.level}
           </span>
-          <span className={`px-3 py-1 rounded-full ${course.status === 'Finished' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'}`}>
-            {course.status}
-          </span>
+          {/* {course.status && (
+            <span className={`px-3 py-1 rounded-full ${course.status === 'Finished' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'}`}>
+              {course.status}
+            </span>
+          )} */}
         </div>
 
           {isAdminView ? (
@@ -667,7 +675,7 @@ export function CourseDetail() {
                   >
                     
                     <h1 className="text-3xl sm:text-4xl font-bold text-neutral-900 dark:text-neutral-100 leading-tight">
-                      {course.title}
+                      {course.title} <span className="text-xs text-pink-500">(Click to Edit)</span>
                     </h1>
 
                   </button>
@@ -952,6 +960,8 @@ export function CourseDetail() {
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            
             
             <form onSubmit={handleUpdateCourse} className="space-y-4">
               <div>
@@ -1176,6 +1186,8 @@ export function CourseDetail() {
           )}
         </div>
       )}
+
     </div>
+
   );
 }

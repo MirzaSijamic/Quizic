@@ -30,7 +30,7 @@ export type Course = {
   id: number;
   title: string;
   level: CourseLevel;
-  status: 'Finished' | 'Unfinished';
+  //status: 'Finished' | 'Unfinished';
   lessons: Lesson[];
 };
 
@@ -40,7 +40,7 @@ export const MOCK_COURSES: Course[] = [
     id: 1,
     title: "Welcome to eMP",
     level: "Beginner",
-    status: "Finished",
+    //status: "Finished",
     lessons: [
       {
         title: "Presentation",
@@ -63,7 +63,7 @@ export const MOCK_COURSES: Course[] = [
     id: 2,
     title: "Digital Marketing 101 eMP Academy",
     level: "Beginner",
-    status: "Finished",
+    //status: "Finished",
     lessons: [
       {
         title: "Triangle",
@@ -162,7 +162,7 @@ export const MOCK_COURSES: Course[] = [
     id: 3,
     title: "Computer Literacy",
     level: "Beginner",
-    status: "Finished",
+    //status: "Finished",
     lessons: [
       {
         title: "Writting/Remembering Shortcuts",
@@ -188,7 +188,7 @@ export const MOCK_COURSES: Course[] = [
     id: 4,
     title: "Excel Literacy",
     level: "Beginner",
-    status: "Unfinished",
+    //status: "Unfinished",
     lessons: [
       {
         title: "Excel formats (CSV, XLSX)",
@@ -220,7 +220,7 @@ export const MOCK_COURSES: Course[] = [
     id: 5,
     title: "DM 101 (Ben Silverstein)",
     level: "Beginner",
-    status: "Unfinished",
+    //status: "Unfinished",
     lessons: [
       {
         title: "Standard Ad Formats (IAB)",
@@ -252,7 +252,7 @@ export const MOCK_COURSES: Course[] = [
     id: 6,
     title: "IO & Media Plans",
     level: "Beginner",
-    status: "Unfinished",
+    //status: "Unfinished",
     lessons: [
       {
         title: "Reading Media Plans & IOs",
@@ -278,7 +278,7 @@ export const MOCK_COURSES: Course[] = [
     id: 7,
     title: "Ad Servers",
     level: "Beginner",
-    status: "Unfinished",
+    //status: "Unfinished",
     lessons: [
       {
         title: "Functionalities",
@@ -390,7 +390,7 @@ export const MOCK_COURSES: Course[] = [
     id: 8,
     title: "Reporting",
     level: "Beginner",
-    status: "Unfinished",
+    //status: "Unfinished",
     lessons: [
       {
         title: "Building report templates (based on the media plans)",
@@ -404,7 +404,7 @@ export const MOCK_COURSES: Course[] = [
     id: 9,
     title: "GAM Reporting",
     level: "Beginner",
-    status: "Unfinished",
+    //status: "Unfinished",
     lessons: [
       {
         title: "Pulling GAM reports (history & reach)",
@@ -431,7 +431,7 @@ export const MOCK_COURSES: Course[] = [
     id: 10,
     title: "GAM Trafficking",
     level: "Intermediate",
-    status: "Unfinished",
+    //status: "Unfinished",
     lessons: [
       {
         title: "GAM Structure + Hierarchy",
@@ -463,7 +463,7 @@ export const MOCK_COURSES: Course[] = [
     id: 11,
     title: "DM 201 (Ben Silverstein)",
     level: "Intermediate",
-    status: "Unfinished",
+    //status: "Unfinished",
     lessons: [
       {
         title: "Creative types (Image, HTML, Script/TAG)",
@@ -501,7 +501,7 @@ export const MOCK_COURSES: Course[] = [
     id: 12,
     title: "Insights & Recommendation",
     level: "Intermediate",
-    status: "Unfinished",
+    //status: "Unfinished",
     lessons: [
       {
         title: "Mid campaign report Consultancy",
@@ -521,7 +521,7 @@ export const MOCK_COURSES: Course[] = [
     id: 13,
     title: "DCM Reporting",
     level: "Intermediate",
-    status: "Unfinished",
+    //status: "Unfinished",
     lessons: [
       {
         title: "pulling DCM reports",
@@ -547,7 +547,7 @@ export const MOCK_COURSES: Course[] = [
     id: 14,
     title: "Discrepancy",
     level: "Intermediate",
-    status: "Unfinished",
+    //status: "Unfinished",
     lessons: [
       {
         title: "What is discrepancy?",
@@ -573,7 +573,7 @@ export const MOCK_COURSES: Course[] = [
     id: 15,
     title: "Secondary metrics reporting",
     level: "Intermediate",
-    status: "Unfinished",
+    //status: "Unfinished",
     lessons: [
       {
         title: "Pulling reports from DoubleVerify, Moat, IAS",
@@ -593,7 +593,7 @@ export const MOCK_COURSES: Course[] = [
     id: 16,
     title: "Celtra Reporting",
     level: "Intermediate",
-    status: "Unfinished",
+    //status: "Unfinished",
     lessons: [
       {
         title: "Pulling Reports",
@@ -607,7 +607,7 @@ export const MOCK_COURSES: Course[] = [
     id: 17,
     title: "Billing & Invoicing",
     level: "Intermediate",
-    status: "Unfinished",
+    //status: "Unfinished",
     lessons: [
       {
         title: "Billing",
@@ -627,7 +627,7 @@ export const MOCK_COURSES: Course[] = [
     id: 18,
     title: "Inventory Management",
     level: "Intermediate",
-    status: "Unfinished",
+    //status: "Unfinished",
     lessons: [
       {
         title: "Inventory forecasting",
@@ -659,7 +659,7 @@ export const MOCK_COURSES: Course[] = [
     id: 19,
     title: "Test pages & Screenshots",
     level: "Intermediate",
-    status: "Unfinished",
+    //status: "Unfinished",
     lessons: [
       {
         title: "Creating test pages",
@@ -679,7 +679,7 @@ export const MOCK_COURSES: Course[] = [
     id: 20,
     title: "Video Campaigns",
     level: "Intermediate",
-    status: "Unfinished",
+    //status: "Unfinished",
     lessons: [
       {
         title: "Video Inventory",
@@ -711,7 +711,7 @@ export const MOCK_COURSES: Course[] = [
     id: 21,
     title: "Soft Skills",
     level: "Intermediate",
-    status: "Unfinished",
+    //status: "Unfinished",
     lessons: [
       {
         title: "Email communication",
@@ -744,7 +744,7 @@ export const MOCK_COURSES: Course[] = [
     id: 22,
     title: "AdTech and more",
     level: "Advanced",
-    status: "Unfinished",
+    //status: "Unfinished",
     lessons: [
       {
         title: "HTML/JS training",
@@ -761,6 +761,7 @@ export const MOCK_COURSES: Course[] = [
     ]
   }
 ];
+
 
 export const USER_INFO = {
   name: "Mirza Sijamić",

@@ -341,14 +341,7 @@ export function Progress() {
                 </div>
                 
                 <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">{student.full_name}</h3>
-                <p className="text-xs text-neutral-500 mb-4">{studentCompleted} finished, {studentUnfinished} unfinished</p>
                 
-                <div className="w-full h-2 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
-                  <div 
-                    style={{ width: `${studentProgress}%` }}
-                    className="h-full bg-gradient-to-r from-pink-500 to-orange-400 rounded-full"
-                  />
-                </div>
               </motion.div>
             );
           })}
@@ -389,6 +382,7 @@ export function Progress() {
             </div>
           </div>
 
+          
           {/* Progress & Courses */}
           <div className="lg:col-span-2 space-y-8">
             <div className="bg-white dark:bg-neutral-900 rounded-3xl p-6 sm:p-8 shadow-sm border border-neutral-200 dark:border-neutral-800">
