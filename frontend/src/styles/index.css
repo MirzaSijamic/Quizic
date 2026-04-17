@@ -4,7 +4,7 @@
 
 /* Add this at the bottom of your CSS file */
 #dify-chatbot-bubble-button {
-  background-color: #1C64F2 !important;
+  background-color: #f21c79 !important;
   z-index: 9999 !important; /* Ensures it stays on top of your site content */
 }
 

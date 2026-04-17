@@ -155,6 +155,7 @@ def microsoft_callback(
 
     user_session = {
         "profile_id": local_profile["id"],
+        "team_id": local_profile["team_id"],
         "role": local_profile.get("role", "student"),
         "id": profile.get("id", ""),
         "email": email,

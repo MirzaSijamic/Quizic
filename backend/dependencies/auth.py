@@ -20,9 +20,14 @@ def get_current_user(
     profile = profile_service.fetch_profile_by_email(conn, email.strip())
     if not profile:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Profile not found")
+    
+    team_id = profile.get("team_id")
+    if team_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Profile missing team association")
 
     return {
         "profile_id": profile["id"],
+        "team_id": profile.get("team_id"),
         "email": profile["email"],
         "role": profile.get("role", "student"),
         "display_name": profile.get("full_name") or session_data.get("display_name", ""),
