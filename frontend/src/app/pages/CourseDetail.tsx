@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router";
-import { color, motion } from "motion/react";
+import { motion } from "motion/react";
 import { ArrowLeft, Play, FileText, PenTool, ShieldAlert, ChevronRight, Plus, X, Users } from "lucide-react";
 import { type Course, type CourseLevel } from "../data";
 import { ExerciseQuiz, type QuizExercise } from "../components/ExerciseQuiz";
