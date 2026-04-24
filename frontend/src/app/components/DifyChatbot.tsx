@@ -3,7 +3,13 @@ import { useEffect } from 'react';
 const DifyChatbot = () => {
   useEffect(() => {
     const initFlag = '__difyEmbedInitialized';
-    const token = 'UDADTcZJxpqM467y';
+    const token = import.meta.env.VITE_DIFY_TOKEN as string | undefined;
+
+    if (!token) {
+      console.warn('[DifyChatbot] VITE_DIFY_TOKEN is not set. Chatbot will not be initialized.');
+      return;
+    }
+
     const scriptId = `dify-embed-${token}`;
 
     if ((window as any)[initFlag]) {

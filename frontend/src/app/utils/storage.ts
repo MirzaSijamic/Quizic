@@ -107,7 +107,12 @@ export type CourseOption = {
   id: number;
   name: string;
   difficulty?: string | null;
-  completed?: boolean; // Add this field to represent completion status
+  completed?: boolean;
+};
+
+type CourseCompletionStatus = {
+  course_id: number;
+  completed: boolean;
 };
 
 export type QuizOption = {
@@ -289,11 +294,15 @@ export async function fetchCoursesFromApi(): Promise<CourseOption[]> {
     throw new Error((err as { detail?: string }).detail || "Failed to load course completion status.");
   }
 
-  const courseCompletedResJSON = await courseCompletedRes.json() as CourseOption[];
+  const courseCompletedResJSON = await courseCompletedRes.json() as CourseCompletionStatus[];
 
-  const combinedJson = responseJson.map((course, index) => ({
+  const completionMap = new Map<number, boolean>(
+    courseCompletedResJSON.map((entry) => [entry.course_id, entry.completed])
+  );
+
+  const combinedJson = responseJson.map((course) => ({
     ...course,
-    completed: courseCompletedResJSON[index]?.completed,
+    completed: completionMap.get(course.id),
   }));
 
   return combinedJson;
