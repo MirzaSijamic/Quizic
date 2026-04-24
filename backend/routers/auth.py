@@ -153,9 +153,13 @@ def microsoft_callback(
         display_name=profile.get("displayName") or "",
     )
 
+    team_id = local_profile.get("team_id")
+    if team_id is None:
+        return RedirectResponse(url=f"{frontend_target}?status=error&reason=team_missing")
+
     user_session = {
         "profile_id": local_profile["id"],
-        "team_id": local_profile["team_id"],
+        "team_id": team_id,
         "role": local_profile.get("role", "student"),
         "id": profile.get("id", ""),
         "email": email,
