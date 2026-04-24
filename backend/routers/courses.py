@@ -28,8 +28,11 @@ def get_course_by_id(course_id: int,
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def create_course(course_data: CourseCreate, conn = Depends(get_db_connection), current_user: dict = Depends(require_admin)) -> CourseRead:
+    team_id = current_user.get("team_id")
+    if team_id is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Admin account is not associated with a team")
     data = course_data.model_dump()
-    data["team_id"] = current_user["team_id"]
+    data["team_id"] = team_id
     return course_service.create_course(conn, data)
 
 @router.put("/{course_id}")

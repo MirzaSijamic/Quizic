@@ -295,6 +295,8 @@ export async function fetchCoursesFromApi(): Promise<CourseOption[]> {
         profile_id?: number;
         profile?: { id?: number };
       };
+      // Try profile_id first (set explicitly after login), then profile.id (nested object
+      // some OAuth providers return), then fall back to top-level id
       profileId = authUser.profile_id ?? authUser.profile?.id ?? authUser.id ?? null;
     } catch {
       profileId = null;
