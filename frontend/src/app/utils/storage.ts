@@ -293,14 +293,15 @@ export async function fetchCoursesFromApi(): Promise<CourseOption[]> {
   const courseCompletedResJSON = await courseCompletedRes.json() as CourseOption[];
   //console.log("Course completion status parsed:", courseCompletedResJSON[0].completed);
 
-  const combinejsn = responseJson.map((course, index) => {
-    course.completed = courseCompletedResJSON[index].completed;
-  });
+  const combinedJson = responseJson.map((course, index) => ({
+    ...course,
+    completed: courseCompletedResJSON[index]?.completed,
+  }));
 
-  //console.log("Combined course data:", responseJson);
+  //console.log("Combined course data:", combinedJson);
 
 
-  return responseJson;
+  return combinedJson;
 }
 
 export async function fetchQuizzesFromApi(): Promise<QuizOption[]> {
