@@ -4,6 +4,7 @@ from pydantic import BaseModel
 class CourseBase(BaseModel):
     name: str
     difficulty: str | None = None
+    team_id: int | None = None
 
 
 class CourseCreate(CourseBase):
@@ -13,6 +14,7 @@ class CourseCreate(CourseBase):
 class CourseUpdate(BaseModel):
     name: str | None = None
     difficulty: str | None = None
+    team_id: int | None = None
 
 
 class CourseRead(CourseBase):

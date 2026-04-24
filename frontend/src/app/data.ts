@@ -762,6 +762,7 @@ export const MOCK_COURSES: Course[] = [
   }
 ];
 
+
 export const USER_INFO = {
   name: "Mirza Sijamić",
   role: "User",

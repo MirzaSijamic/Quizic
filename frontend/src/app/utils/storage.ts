@@ -107,6 +107,12 @@ export type CourseOption = {
   id: number;
   name: string;
   difficulty?: string | null;
+  completed?: boolean;
+};
+
+type CourseCompletionStatus = {
+  course_id: number;
+  completed: boolean;
 };
 
 export type QuizOption = {
@@ -274,10 +280,54 @@ export async function fetchCoursesFromApi(): Promise<CourseOption[]> {
 
   if (!coursesRes.ok) {
     const err = await coursesRes.json().catch(() => ({}));
-    throw new Error(err.detail || "Failed to load courses.");
+    throw new Error((err as { detail?: string }).detail || "Failed to load courses.");
   }
 
-  return (await coursesRes.json()) as CourseOption[];
+  const responseJson = await coursesRes.json() as CourseOption[];
+
+  const authUserRaw = localStorage.getItem("auth_user");
+  let profileId: number | null = null;
+
+  if (authUserRaw) {
+    try {
+      const authUser = JSON.parse(authUserRaw) as {
+        id?: number;
+        profile_id?: number;
+        profile?: { id?: number };
+      };
+      // Try profile_id first (set explicitly after login), then profile.id (nested object
+      // some OAuth providers return), then fall back to top-level id
+      profileId = authUser.profile_id ?? authUser.profile?.id ?? authUser.id ?? null;
+    } catch {
+      profileId = null;
+    }
+  }
+
+  if (profileId == null) {
+    throw new Error("Failed to determine the logged-in user's profile id.");
+  }
+
+  const courseCompletedRes = await fetch(`${apiBase}/api/profile-courses/profile/${profileId}/completion-status`, {
+    credentials: "include",
+  });
+
+  if (!courseCompletedRes.ok) {
+    const err = await courseCompletedRes.json().catch(() => ({}));
+    throw new Error((err as { detail?: string }).detail || "Failed to load course completion status.");
+  }
+
+  const courseCompletedResJSON = await courseCompletedRes.json() as CourseCompletionStatus[];
+
+  const completionMap = new Map<number, boolean>(
+    courseCompletedResJSON.map((entry) => [entry.course_id, entry.completed])
+  );
+
+  const combinedJson = responseJson.map((course) => ({
+    ...course,
+    completed: completionMap.get(course.id),
+  }));
+
+  return combinedJson;
 }
 
 export async function fetchQuizzesFromApi(): Promise<QuizOption[]> {

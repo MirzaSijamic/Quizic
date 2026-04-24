@@ -55,6 +55,8 @@ export function Layout() {
     { to: "/admin/quizzes", icon: Settings, label: "Manage Quizzes" },
     { to: "/admin/results", icon: BarChart3, label: "View Results" },
   ];
+  
+  
 
 
   return (

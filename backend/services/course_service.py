@@ -1,5 +1,5 @@
 # services/course_service.py
-from crud.course_crud import course_crud
+from crud.course_crud import course_crud, get_course_by_id_and_team, get_courses_by_team
 
 def fetch_courses(conn):
     return course_crud.get_all(conn)
@@ -16,3 +16,10 @@ def update_course(conn, course_id: int, course_data: dict):
 
 def delete_course(conn, course_id: int):
     return course_crud.delete(conn, course_id)
+
+def fetch_courses_by_team(conn, team_id: int):
+    return get_courses_by_team(conn, team_id)
+
+def fetch_course_by_id_and_team(conn, course_id: int, team_id: int):
+    return get_course_by_id_and_team(conn, course_id, team_id)
+

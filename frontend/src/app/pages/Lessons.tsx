@@ -89,7 +89,7 @@ const buildCoursesFromApi = (
         id: course.id,
         title: course.name,
         level: normalizeCourseLevel(course.difficulty),
-        status: "Unfinished", //Treba napraviti da se status dobija iz API-ja, ovo je samo placeholder
+        status: course.completed ? "Finished" : "Unfinished", //Treba napraviti da se status dobija iz API-ja, ovo je samo placeholder
         lessons: lessonsForCourse,
       } satisfies Course;
     })

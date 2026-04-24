@@ -23,6 +23,7 @@ def get_current_user(
 
     return {
         "profile_id": profile["id"],
+        "team_id": profile.get("team_id"),
         "email": profile["email"],
         "role": profile.get("role", "student"),
         "display_name": profile.get("full_name") or session_data.get("display_name", ""),
