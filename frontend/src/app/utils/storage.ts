@@ -285,7 +285,27 @@ export async function fetchCoursesFromApi(): Promise<CourseOption[]> {
 
   const responseJson = await coursesRes.json() as CourseOption[];
 
-  const courseCompletedRes = await fetch(`${apiBase}/api/profile-courses/profile/1/completion-status`, {
+  const authUserRaw = localStorage.getItem("auth_user");
+  let profileId: number | null = null;
+
+  if (authUserRaw) {
+    try {
+      const authUser = JSON.parse(authUserRaw) as {
+        id?: number;
+        profile_id?: number;
+        profile?: { id?: number };
+      };
+      profileId = authUser.profile_id ?? authUser.profile?.id ?? authUser.id ?? null;
+    } catch {
+      profileId = null;
+    }
+  }
+
+  if (profileId == null) {
+    throw new Error("Failed to determine the logged-in user's profile id.");
+  }
+
+  const courseCompletedRes = await fetch(`${apiBase}/api/profile-courses/profile/${profileId}/completion-status`, {
     credentials: "include",
   });
 

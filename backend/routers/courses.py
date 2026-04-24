@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from database import get_db_connection
 from schemas import CourseCreate, CourseRead, CourseUpdate
 from services import course_service
-from dependencies.auth import get_current_user
+from dependencies.auth import get_current_user, require_admin
 
 router = APIRouter(prefix="/api/courses", tags=["Courses"])
 
@@ -27,12 +27,13 @@ def get_course_by_id(course_id: int,
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-def create_course(course_data: CourseCreate, conn = Depends(get_db_connection)) -> CourseRead:
-    
-    return course_service.create_course(conn, course_data.model_dump())
+def create_course(course_data: CourseCreate, conn = Depends(get_db_connection), current_user: dict = Depends(require_admin)) -> CourseRead:
+    data = course_data.model_dump()
+    data["team_id"] = current_user["team_id"]
+    return course_service.create_course(conn, data)
 
 @router.put("/{course_id}")
-def update_course(course_id: int, course_data: CourseUpdate, conn = Depends(get_db_connection), current_user: dict = Depends(get_current_user)) -> CourseRead:
+def update_course(course_id: int, course_data: CourseUpdate, conn = Depends(get_db_connection), current_user: dict = Depends(require_admin)) -> CourseRead:
     course = course_service.fetch_course_by_id_and_team(conn, course_id, current_user["team_id"])
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")

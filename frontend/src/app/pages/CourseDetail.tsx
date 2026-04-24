@@ -119,7 +119,7 @@ const resolveVideoEmbedConfig = (rawUrl: string): VideoEmbedConfig => {
       }
     }
 
-    if (host.includes("youtube.com") || host.includes("youtube-nocookie.com")) {
+    if (host === "youtube.com" || host.endsWith(".youtube.com") || host === "youtube-nocookie.com" || host.endsWith(".youtube-nocookie.com")) {
       const watchId = parsed.searchParams.get("v");
       if (watchId) {
         return { kind: "youtube", src: `https://www.youtube.com/embed/${watchId}` };
@@ -132,7 +132,7 @@ const resolveVideoEmbedConfig = (rawUrl: string): VideoEmbedConfig => {
       }
     }
 
-    if (host.includes("vimeo.com")) {
+    if (host === "vimeo.com" || host.endsWith(".vimeo.com")) {
       const segments = path.split("/").filter(Boolean);
       const videoIdx = segments.findIndex((segment) => segment === "video");
       const id = videoIdx >= 0 ? segments[videoIdx + 1] : segments[segments.length - 1];

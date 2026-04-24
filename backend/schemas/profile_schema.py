@@ -5,7 +5,7 @@ class ProfileBase(BaseModel):
     full_name: str
     email: str
     role: str
-    team_id: int
+    team_id: int | None = None
 
 
 class ProfileCreate(ProfileBase):
