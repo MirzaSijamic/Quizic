@@ -795,7 +795,7 @@ export function CourseDetail() {
                                       rel="noreferrer"
                                       className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                                     >
-                                      Open video link <a> </a>
+                                      Open video link
                                     </a>
                                   )}
 
