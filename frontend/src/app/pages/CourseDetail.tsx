@@ -667,24 +667,24 @@ export function CourseDetail() {
         </div>
 
           {isAdminView ? (
-          <button
-                    onClick={() => {
-                      openCourseEditModal();
-                    }}
-                    className="flex items-center gap-1.5 text-sm font-medium text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-900/20 px-3 py-1.5 rounded-lg hover:bg-pink-100 dark:hover:bg-pink-900/40 transition-colors"
-                  >
-                    
-                    <h1 className="text-3xl sm:text-4xl font-bold text-neutral-900 dark:text-neutral-100 leading-tight">
-                      {course.title} <span className="text-xs text-pink-500">(Click to Edit)</span>
-                    </h1>
-
-                  </button>
-        ):
-          <h1 className="text-3xl sm:text-4xl font-bold text-neutral-900 dark:text-neutral-100 leading-tight">
-            {course.title}
-          </h1>
-        }
-
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-3xl sm:text-4xl font-bold text-neutral-900 dark:text-neutral-100 leading-tight">
+                {course.title}
+              </h1>
+              <button
+                onClick={() => {
+                  openCourseEditModal();
+                }}
+                className="flex items-center gap-1.5 text-sm font-medium text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-900/20 px-3 py-1.5 rounded-lg hover:bg-pink-100 dark:hover:bg-pink-900/40 transition-colors"
+              >
+                <span className="text-xs text-pink-500">(Click to Edit)</span>
+              </button>
+            </div>
+          ) : (
+            <h1 className="text-3xl sm:text-4xl font-bold text-neutral-900 dark:text-neutral-100 leading-tight">
+              {course.title}
+            </h1>
+          )}
         <p className="text-neutral-500 max-w-2xl text-lg">
           Explore the lessons within this course to build your skills and complete the required materials.
         </p>
