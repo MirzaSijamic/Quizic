@@ -273,33 +273,28 @@ export async function fetchCoursesFromApi(): Promise<CourseOption[]> {
     credentials: "include",
   });
 
+  if (!coursesRes.ok) {
+    const err = await coursesRes.json().catch(() => ({}));
+    throw new Error((err as { detail?: string }).detail || "Failed to load courses.");
+  }
+
   const responseJson = await coursesRes.json() as CourseOption[];
-  //responseJson[0].completed = true; // Set the first course as completed for testing
-  //console.log("Courses response:", responseJson);
-
-
 
   const courseCompletedRes = await fetch(`${apiBase}/api/profile-courses/profile/1/completion-status`, {
     credentials: "include",
   });
 
-  //console.log("Course completion status response:", await courseCompletedRes.json());
-
-  if (!coursesRes.ok) {
-    const err = await coursesRes.json().catch(() => ({}));
-    throw new Error(err.detail || "Failed to load courses.");
+  if (!courseCompletedRes.ok) {
+    const err = await courseCompletedRes.json().catch(() => ({}));
+    throw new Error((err as { detail?: string }).detail || "Failed to load course completion status.");
   }
 
   const courseCompletedResJSON = await courseCompletedRes.json() as CourseOption[];
-  //console.log("Course completion status parsed:", courseCompletedResJSON[0].completed);
 
   const combinedJson = responseJson.map((course, index) => ({
     ...course,
     completed: courseCompletedResJSON[index]?.completed,
   }));
-
-  //console.log("Combined course data:", combinedJson);
-
 
   return combinedJson;
 }
